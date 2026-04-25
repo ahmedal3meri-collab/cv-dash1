@@ -307,6 +307,7 @@ export default function HRDashboard() {
 
   if (selApplicant) return (
     <div style={{ ...$.app, direction: lang === "en" ? "ltr" : "rtl" }}>
+      <style>{`@media print { button, a[href="/hr/login"] { display:none!important } body { background:#fff!important; color:#000!important } }`}</style>
       <div style={{ background: $.surface2, borderBottom: `1px solid ${primaryColor}22`, padding: "13px 26px", display: "flex", alignItems: "center", gap: 14 }}>
         <button style={{ ...$.btn("g"), padding: "8px 14px", display: "flex", alignItems: "center", gap: 6, fontSize: 13 }} onClick={() => setSelApplicant(null)}>
           <Icon n="back" s={15} />{t("back")}

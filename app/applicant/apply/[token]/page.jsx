@@ -179,7 +179,7 @@ export default function ApplyPage({ params }) {
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px", background: "#0d0d15", borderRadius: 10, border: "1px solid #1e1e2e" }}>
                   <input type="checkbox" id="agree" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 2, cursor: "pointer", accentColor: G }} />
                   <label htmlFor="agree" style={{ fontSize: 12, color: "#555", lineHeight: 1.6, cursor: "pointer" }}>
-                    أوافق على <a href="#" style={{ color: G, textDecoration: "none" }}>سياسة الخصوصية</a> وأُقرّ بأن بياناتي ستُعالج وفق <strong style={{ color: G }}>قانون PDPL 2023</strong> الإماراتي لأغراض التوظيف فقط.
+                    أوافق على <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: G, textDecoration: "none" }}>سياسة الخصوصية</a> وأُقرّ بأن بياناتي ستُعالج وفق <strong style={{ color: G }}>قانون PDPL 2023</strong> الإماراتي لأغراض التوظيف فقط.
                   </label>
                 </div>
                 {loading && (

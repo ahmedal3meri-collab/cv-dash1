@@ -233,7 +233,7 @@ export default function AdminDashboard() {
                       </td>
                       <td style={$.td}><span style={$.tg(c.plan === "Enterprise" ? G : c.plan === "Professional" ? "#60a5fa" : "#34d399")}>{c.plan}</span></td>
                       <td style={$.td}><strong>{applicants.filter((a) => a.companyId === c.id || a.companyId === String(c.id)).length}</strong></td>
-                      <td style={$.td}>{hrAccounts.filter((h) => h.companyId === c.id || h.companyId === String(c.id)).length}</td>
+                      <td style={$.td}>{hrAccounts.filter((h) => h.company_id === c.id || h.company_id === String(c.id)).length}</td>
                       <td style={$.td}>
                         <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12 }} onClick={() => router.push("/hr/login")}>HR Dashboard</button>
                       </td>
@@ -523,7 +523,7 @@ export default function AdminDashboard() {
                     const coApps = applicants.filter((a) => a.companyId === c.id || a.companyId === String(c.id));
                     const accepted = coApps.filter((a) => a.status === "مقبول").length;
                     const coJobs = allJobs.filter((j) => j.companyId === c.id).length;
-                    const coHR = hrAccounts.filter((h) => h.companyId === c.id).length;
+                    const coHR = hrAccounts.filter((h) => h.company_id === c.id || h.company_id === String(c.id)).length;
                     const maxApps = Math.max(...companies.map((co) => applicants.filter((a) => a.companyId === co.id || a.companyId === String(co.id)).length), 1);
                     return (
                       <div key={c.id} style={{ background: $.surface2, borderRadius: 10, padding: "14px 16px" }}>
