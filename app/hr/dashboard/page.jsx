@@ -89,6 +89,8 @@ export default function HRDashboard() {
   const [fRating, setFRating] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
   const [showCompare, setShowCompare] = useState(false);
+  const [sortBy, setSortBy] = useState("date");
+  const [sortDir, setSortDir] = useState("desc");
 
   useEffect(() => {
     fetch("/api/me")
@@ -188,6 +190,23 @@ export default function HRDashboard() {
     return true;
   });
   const hasActiveFilter = fStatus !== "الكل" || fJob !== "all" || fRating > 0 || search;
+
+  const sortedFiltered = [...filtered].sort((a, b) => {
+    let va, vb;
+    if (sortBy === "rating") { va = a.rating || 0; vb = b.rating || 0; }
+    else if (sortBy === "name") { va = a.name || ""; vb = b.name || ""; }
+    else if (sortBy === "date") { va = a.date || ""; vb = b.date || ""; }
+    else if (sortBy === "experience") { va = parseInt(a.experience) || 0; vb = parseInt(b.experience) || 0; }
+    else { va = ""; vb = ""; }
+    if (typeof va === "string") return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
+    return sortDir === "asc" ? va - vb : vb - va;
+  });
+
+  const toggleSort = (col) => {
+    if (sortBy === col) setSortDir((d) => d === "asc" ? "desc" : "asc");
+    else { setSortBy(col); setSortDir("desc"); }
+  };
+  const sortArrow = (col) => sortBy === col ? (sortDir === "asc" ? " ↑" : " ↓") : "";
 
   const scheduledInterviews = applicants.filter((a) => a.interviewDate);
 
@@ -496,23 +515,33 @@ export default function HRDashboard() {
                   <tr>
                     <th style={$.th}>
                     <input type="checkbox"
-                      checked={filtered.length > 0 && filtered.every((a) => selectedIds.includes(a.id))}
+                      checked={sortedFiltered.length > 0 && sortedFiltered.every((a) => selectedIds.includes(a.id))}
                       onChange={() => {
-                        const allSelected = filtered.every((a) => selectedIds.includes(a.id));
-                        setSelectedIds(allSelected ? [] : filtered.map((a) => a.id));
+                        const allSelected = sortedFiltered.every((a) => selectedIds.includes(a.id));
+                        setSelectedIds(allSelected ? [] : sortedFiltered.map((a) => a.id));
                       }}
                       style={{ cursor: "pointer", accentColor: primaryColor }}
                     />
                   </th>
-                  {[t("name"), t("title"), t("experience"), t("languages"), t("rating"), t("status"), ""].map((h) => (
-                      <th key={h} style={$.th}>{h}</th>
-                    ))}
+                  {[
+                    { l: t("name"), k: "name" },
+                    { l: t("title"), k: null },
+                    { l: t("experience"), k: "experience" },
+                    { l: t("languages"), k: null },
+                    { l: t("rating"), k: "rating" },
+                    { l: t("status"), k: null },
+                    { l: "", k: null },
+                  ].map(({ l, k }) => (
+                    <th key={l} style={{ ...$.th, cursor: k ? "pointer" : "default", userSelect: "none" }} onClick={() => k && toggleSort(k)}>
+                      {l}{k ? sortArrow(k) : ""}
+                    </th>
+                  ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.length === 0 ? (
-                    <tr><td colSpan={7} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>{applicants.length === 0 ? "لا يوجد متقدمون بعد" : t("noResults")}</td></tr>
-                  ) : filtered.map((a) => (
+                  {sortedFiltered.length === 0 ? (
+                    <tr><td colSpan={8} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>{applicants.length === 0 ? "لا يوجد متقدمون بعد" : t("noResults")}</td></tr>
+                  ) : sortedFiltered.map((a) => (
                     <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = selectedIds.includes(a.id) ? `${primaryColor}11` : "transparent"} style={{ cursor: "pointer", background: selectedIds.includes(a.id) ? `${primaryColor}11` : "transparent" }}>
                       <td style={{ ...$.td, width: 36 }}>
                         <input type="checkbox" checked={selectedIds.includes(a.id)} onChange={() => toggleSelected(a.id)} onClick={(e) => e.stopPropagation()} style={{ cursor: "pointer", accentColor: primaryColor }} />
