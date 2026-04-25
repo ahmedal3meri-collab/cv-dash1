@@ -15,6 +15,7 @@ export default function AdminDashboard() {
 
   const [companies, setCompanies] = useState([]);
   const [applicants, setApplicants] = useState([]);
+  const [hrAccounts, setHrAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [aTab, setATab] = useState("overview");
   const [copied, setCopied] = useState(null);
@@ -22,14 +23,22 @@ export default function AdminDashboard() {
   const [newCo, setNewCo] = useState({ name: "", plan: "Basic" });
   const [addLoading, setAddLoading] = useState(false);
 
+  // HR account form state
+  const [showAddHR, setShowAddHR] = useState(false);
+  const [newHR, setNewHR] = useState({ name: "", email: "", password: "", companyId: "", role: "hr" });
+  const [hrLoading, setHrLoading] = useState(false);
+  const [hrError, setHrError] = useState("");
+
   useEffect(() => {
     Promise.all([
       fetch("/api/companies").then((r) => r.json()),
       fetch("/api/applicants").then((r) => r.json()),
+      fetch("/api/hr-accounts").then((r) => r.json()),
     ])
-      .then(([cos, apps]) => {
+      .then(([cos, apps, hrs]) => {
         setCompanies(Array.isArray(cos) ? cos : []);
         setApplicants(Array.isArray(apps) ? apps : []);
+        setHrAccounts(Array.isArray(hrs) ? hrs : []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -61,6 +70,44 @@ export default function AdminDashboard() {
     setCompanies((p) => p.filter((c) => c.id !== id));
   };
 
+  const addHRAccount = async () => {
+    setHrError("");
+    if (!newHR.name || !newHR.email || !newHR.password || !newHR.companyId) {
+      setHrError("جميع الحقول مطلوبة");
+      return;
+    }
+    setHrLoading(true);
+    const res = await fetch("/api/hr-accounts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newHR),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      const company = companies.find((c) => c.id === newHR.companyId);
+      setHrAccounts((p) => [{ ...data, companies: { name: company?.name, primary_color: company?.primaryColor } }, ...p]);
+      setShowAddHR(false);
+      setNewHR({ name: "", email: "", password: "", companyId: "", role: "hr" });
+    } else {
+      setHrError(data.error || "حدث خطأ");
+    }
+    setHrLoading(false);
+  };
+
+  const toggleHRStatus = async (id, current) => {
+    await fetch(`/api/hr-accounts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !current }),
+    });
+    setHrAccounts((p) => p.map((h) => h.id === id ? { ...h, is_active: !current } : h));
+  };
+
+  const deleteHRAccount = async (id) => {
+    await fetch(`/api/hr-accounts/${id}`, { method: "DELETE" });
+    setHrAccounts((p) => p.filter((h) => h.id !== id));
+  };
+
   const copyLink = (id) => {
     const link = `${window.location.origin}/applicant/apply/${id}`;
     navigator.clipboard.writeText(link).then(() => {
@@ -70,9 +117,10 @@ export default function AdminDashboard() {
   };
 
   const sidebarItems = [
-    { k: "overview", ic: "home", l: "نظرة عامة" },
-    { k: "companies", ic: "bld", l: "الشركات" },
-    { k: "links", ic: "lnk", l: "روابط التقديم" },
+    { k: "overview",  ic: "home",  l: "نظرة عامة" },
+    { k: "companies", ic: "bld",   l: "الشركات" },
+    { k: "hr",        ic: "users", l: "حسابات HR" },
+    { k: "links",     ic: "lnk",   l: "روابط التقديم" },
     { k: "analytics", ic: "chart", l: "التحليلات" },
   ];
 
@@ -215,6 +263,111 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {aTab === "hr" && (
+          <div style={$.card}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 18 }}>👥 حسابات HR</h3>
+                <p style={{ margin: "4px 0 0", color: $.muted, fontSize: 13 }}>إضافة وإدارة مستخدمي الموارد البشرية لكل شركة</p>
+              </div>
+              <button style={$.btn("p")} onClick={() => { setShowAddHR((v) => !v); setHrError(""); }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6 }}><Icon n="plus" s={15} />إضافة HR</span>
+              </button>
+            </div>
+
+            {showAddHR && (
+              <div style={{ background: $.surface2, borderRadius: 12, padding: 20, marginBottom: 20, border: `1px solid ${G}33` }}>
+                <h4 style={{ margin: "0 0 16px", color: G, fontSize: 15 }}>➕ حساب HR جديد</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>الاسم الكامل *</label>
+                    <input style={$.inp} placeholder="سارة المطيري" value={newHR.name} onChange={(e) => setNewHR((p) => ({ ...p, name: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>البريد الإلكتروني *</label>
+                    <input style={$.inp} type="email" placeholder="hr@company.ae" value={newHR.email} onChange={(e) => setNewHR((p) => ({ ...p, email: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>كلمة المرور * (8 أحرف على الأقل)</label>
+                    <input style={$.inp} type="password" placeholder="••••••••" value={newHR.password} onChange={(e) => setNewHR((p) => ({ ...p, password: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>الشركة *</label>
+                    <select style={$.inp} value={newHR.companyId} onChange={(e) => setNewHR((p) => ({ ...p, companyId: e.target.value }))}>
+                      <option value="">— اختر شركة —</option>
+                      {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>الصلاحية</label>
+                    <select style={$.inp} value={newHR.role} onChange={(e) => setNewHR((p) => ({ ...p, role: e.target.value }))}>
+                      <option value="hr">HR Officer</option>
+                      <option value="hr_manager">HR Manager</option>
+                    </select>
+                  </div>
+                </div>
+                {hrError && <div style={{ marginTop: 10, color: "#f87171", fontSize: 13 }}>⚠️ {hrError}</div>}
+                <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+                  <button style={$.btn("p")} onClick={addHRAccount} disabled={hrLoading}>{hrLoading ? "⏳ جاري الحفظ..." : "حفظ الحساب"}</button>
+                  <button style={$.btn("s")} onClick={() => { setShowAddHR(false); setHrError(""); }}>إلغاء</button>
+                </div>
+              </div>
+            )}
+
+            {hrAccounts.length === 0 ? (
+              <div style={{ textAlign: "center", color: $.muted, padding: 40 }}>لا توجد حسابات HR. أضف أول حساب!</div>
+            ) : (
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr>{["الاسم", "البريد", "الشركة", "الصلاحية", "الحالة", "آخر دخول", "إجراءات"].map((h) => <th key={h} style={$.th}>{h}</th>)}</tr>
+                </thead>
+                <tbody>
+                  {hrAccounts.map((h) => (
+                    <tr key={h.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                      <td style={$.td}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: `${G}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: G, fontSize: 14 }}>{(h.name || "?")[0]}</div>
+                          <span style={{ fontWeight: 600 }}>{h.name}</span>
+                        </div>
+                      </td>
+                      <td style={{ ...$.td, color: $.muted, fontSize: 13 }}>{h.email}</td>
+                      <td style={$.td}>
+                        <span style={$.tg(h.companies?.primary_color || G)}>{h.companies?.name || "—"}</span>
+                      </td>
+                      <td style={$.td}>
+                        <span style={$.tg(h.role === "hr_manager" ? "#a78bfa" : "#60a5fa")}>
+                          {h.role === "hr_manager" ? "HR Manager" : "HR Officer"}
+                        </span>
+                      </td>
+                      <td style={$.td}>
+                        <span style={$.tg(h.is_active ? "#34d399" : "#f87171")}>
+                          {h.is_active ? "✓ فعّال" : "✗ موقوف"}
+                        </span>
+                      </td>
+                      <td style={{ ...$.td, color: $.muted, fontSize: 12 }}>
+                        {h.last_login ? new Date(h.last_login).toLocaleDateString("ar-AE") : "لم يسجل بعد"}
+                      </td>
+                      <td style={$.td}>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button
+                            style={{ ...$.btn(h.is_active ? "s" : "g"), padding: "5px 10px", fontSize: 11 }}
+                            onClick={() => toggleHRStatus(h.id, h.is_active)}
+                          >
+                            {h.is_active ? "إيقاف" : "تفعيل"}
+                          </button>
+                          <button style={{ ...$.btn("d"), padding: "5px 10px", fontSize: 11 }} onClick={() => deleteHRAccount(h.id)}>
+                            <Icon n="del" s={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         )}
 
