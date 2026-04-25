@@ -17,6 +17,7 @@ export default function AdminDashboard() {
   const [applicants, setApplicants] = useState([]);
   const [hrAccounts, setHrAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [aTab, setATab] = useState("overview");
   const [copied, setCopied] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -40,7 +41,9 @@ export default function AdminDashboard() {
         setCompanies(Array.isArray(cos) ? cos : []);
         setApplicants(Array.isArray(apps) ? apps : []);
         setHrAccounts(Array.isArray(hrs) ? hrs : []);
+        if (!Array.isArray(cos) && cos?.error) setLoadError(cos.error);
       })
+      .catch(() => setLoadError("تعذر الاتصال بالخادم — تحقق من إعدادات Supabase"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -138,6 +141,20 @@ export default function AdminDashboard() {
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
           <div style={{ color: $.muted }}>جاري التحميل...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div style={{ ...$.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", maxWidth: 420 }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>⚠️</div>
+          <div style={{ color: "#f87171", fontWeight: 700, marginBottom: 8 }}>خطأ في الاتصال بقاعدة البيانات</div>
+          <div style={{ color: $.muted, fontSize: 13, marginBottom: 20, background: "#4c051922", padding: "10px 14px", borderRadius: 8, border: "1px solid #dc262633" }}>{loadError}</div>
+          <div style={{ color: $.muted, fontSize: 12 }}>تحقق من متغيرات Supabase في Vercel Dashboard</div>
+          <button onClick={() => window.location.reload()} style={{ marginTop: 16, padding: "10px 20px", background: `linear-gradient(135deg,${G},${G}bb)`, color: "#0a0a0f", border: "none", borderRadius: 10, cursor: "pointer", fontFamily: "inherit", fontWeight: 700 }}>إعادة المحاولة</button>
         </div>
       </div>
     );
