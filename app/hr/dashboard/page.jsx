@@ -1,179 +1,138 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import Icon from "../../../components/shared/Icon";
 import Sidebar from "../../../components/shared/Sidebar";
 import Stars from "../../../components/shared/Stars";
 import Badge from "../../../components/shared/Badge";
-import { MOCK_APPLICANTS } from "../../../lib/data";
 import { createTheme } from "../../../lib/theme";
-
-const PRIMARY = "#C9A84C";
-const COMPANY_NAME = "هيئة أبوظبي للصحة";
 
 const T = {
   ar: {
-    portal: "HR DASHBOARD",
-    applicants: "المتقدمون",
-    jobs: "الوظائف",
-    reports: "التقارير",
-    interviews: "المقابلات",
-    settings: "الإعدادات",
-    logout: "خروج",
-    applyLink: "رابط التقديم",
-    exportExcel: "تصدير Excel",
-    total: "إجمالي",
-    review: "مراجعة",
-    accepted: "مقبول",
-    rejected: "مرفوض",
-    search: "بحث بالاسم، المهارة، الجنسية...",
-    all: "الكل",
-    name: "المتقدم",
-    title: "التخصص",
-    experience: "الخبرة",
-    languages: "اللغات",
-    rating: "التقييم",
-    status: "الحالة",
-    view: "عرض",
-    noResults: "لا توجد نتائج",
-    back: "العودة",
-    aiSummary: "ملخص الذكاء الاصطناعي",
-    fullInfo: "المعلومات الكاملة",
-    skills: "المهارات",
-    langs: "اللغات",
-    certs: "الشهادات",
-    decision: "التقييم والقرار",
-    notes: "ملاحظات",
-    addNote: "أضف ملاحظة...",
-    save: "حفظ",
-    downloadCV: "تحميل السيرة الذاتية",
-    deleteApplicant: "حذف المتقدم",
-    scheduleInterview: "جدولة مقابلة",
-    interviewDate: "تاريخ المقابلة",
-    interviewTime: "وقت المقابلة",
-    interviewNotes: "ملاحظات المقابلة",
-    saveInterview: "حفظ الموعد",
-    cancel: "إلغاء",
-    scheduled: "مجدولة",
-    statusDist: "توزيع الحالات",
-    avgRating: "متوسط التقييم",
-    avgRatingAll: "متوسط تقييم جميع المتقدمين",
-    scheduledInterviews: "المقابلات المجدولة",
-    noInterviews: "لا توجد مقابلات مجدولة",
-    nationality: "الجنسية",
-    location: "الموقع",
-    phone: "الهاتف",
-    email: "البريد",
-    jobTitle: "المسمى",
-    exp: "الخبرة",
-    lastEmployer: "آخر جهة عمل",
-    education: "التعليم",
-    university: "المؤسسة",
-    gpa: "GPA",
+    portal: "HR DASHBOARD", applicants: "المتقدمون", jobs: "الوظائف",
+    reports: "التقارير", interviews: "المقابلات", settings: "الإعدادات",
+    logout: "خروج", applyLink: "رابط التقديم", exportExcel: "تصدير Excel",
+    total: "إجمالي", review: "مراجعة", accepted: "مقبول", rejected: "مرفوض",
+    search: "بحث بالاسم، المهارة، الجنسية...", all: "الكل",
+    name: "المتقدم", title: "التخصص", experience: "الخبرة",
+    languages: "اللغات", rating: "التقييم", status: "الحالة", view: "عرض",
+    noResults: "لا توجد نتائج", back: "العودة", aiSummary: "ملخص الذكاء الاصطناعي",
+    fullInfo: "المعلومات الكاملة", skills: "المهارات", langs: "اللغات",
+    certs: "الشهادات", decision: "التقييم والقرار", notes: "ملاحظات",
+    addNote: "أضف ملاحظة...", save: "حفظ", downloadCV: "تحميل السيرة الذاتية",
+    deleteApplicant: "حذف المتقدم", scheduleInterview: "جدولة مقابلة",
+    interviewDate: "تاريخ المقابلة", interviewTime: "وقت المقابلة",
+    interviewNotes: "ملاحظات المقابلة", saveInterview: "حفظ الموعد",
+    cancel: "إلغاء", scheduled: "مجدولة", statusDist: "توزيع الحالات",
+    avgRating: "متوسط التقييم", avgRatingAll: "متوسط تقييم جميع المتقدمين",
+    scheduledInterviews: "المقابلات المجدولة", noInterviews: "لا توجد مقابلات مجدولة",
+    nationality: "الجنسية", location: "الموقع", phone: "الهاتف",
+    email: "البريد", jobTitle: "المسمى", exp: "الخبرة",
+    lastEmployer: "آخر جهة عمل", education: "التعليم", university: "المؤسسة", gpa: "GPA",
+    loading: "جاري التحميل...", darkMode: "وضع داكن", lightMode: "وضع فاتح",
   },
   en: {
-    portal: "HR DASHBOARD",
-    applicants: "Applicants",
-    jobs: "Jobs",
-    reports: "Reports",
-    interviews: "Interviews",
-    settings: "Settings",
-    logout: "Logout",
-    applyLink: "Apply Link",
-    exportExcel: "Export Excel",
-    total: "Total",
-    review: "Under Review",
-    accepted: "Accepted",
-    rejected: "Rejected",
-    search: "Search by name, skill, nationality...",
-    all: "All",
-    name: "Applicant",
-    title: "Specialization",
-    experience: "Experience",
-    languages: "Languages",
-    rating: "Rating",
-    status: "Status",
-    view: "View",
-    noResults: "No results found",
-    back: "Back",
-    aiSummary: "AI Summary",
-    fullInfo: "Full Information",
-    skills: "Skills",
-    langs: "Languages",
-    certs: "Certifications",
-    decision: "Rating & Decision",
-    notes: "Notes",
-    addNote: "Add a note...",
-    save: "Save",
-    downloadCV: "Download CV",
-    deleteApplicant: "Delete Applicant",
-    scheduleInterview: "Schedule Interview",
-    interviewDate: "Interview Date",
-    interviewTime: "Interview Time",
-    interviewNotes: "Interview Notes",
-    saveInterview: "Save Schedule",
-    cancel: "Cancel",
-    scheduled: "Scheduled",
-    statusDist: "Status Distribution",
-    avgRating: "Average Rating",
-    avgRatingAll: "Average rating of all applicants",
-    scheduledInterviews: "Scheduled Interviews",
-    noInterviews: "No scheduled interviews",
-    nationality: "Nationality",
-    location: "Location",
-    phone: "Phone",
-    email: "Email",
-    jobTitle: "Job Title",
-    exp: "Experience",
-    lastEmployer: "Last Employer",
-    education: "Education",
-    university: "University",
-    gpa: "GPA",
+    portal: "HR DASHBOARD", applicants: "Applicants", jobs: "Jobs",
+    reports: "Reports", interviews: "Interviews", settings: "Settings",
+    logout: "Logout", applyLink: "Apply Link", exportExcel: "Export Excel",
+    total: "Total", review: "Under Review", accepted: "Accepted", rejected: "Rejected",
+    search: "Search by name, skill, nationality...", all: "All",
+    name: "Applicant", title: "Specialization", experience: "Experience",
+    languages: "Languages", rating: "Rating", status: "Status", view: "View",
+    noResults: "No results found", back: "Back", aiSummary: "AI Summary",
+    fullInfo: "Full Information", skills: "Skills", langs: "Languages",
+    certs: "Certifications", decision: "Rating & Decision", notes: "Notes",
+    addNote: "Add a note...", save: "Save", downloadCV: "Download CV",
+    deleteApplicant: "Delete Applicant", scheduleInterview: "Schedule Interview",
+    interviewDate: "Interview Date", interviewTime: "Interview Time",
+    interviewNotes: "Interview Notes", saveInterview: "Save Schedule",
+    cancel: "Cancel", scheduled: "Scheduled", statusDist: "Status Distribution",
+    avgRating: "Average Rating", avgRatingAll: "Average rating of all applicants",
+    scheduledInterviews: "Scheduled Interviews", noInterviews: "No scheduled interviews",
+    nationality: "Nationality", location: "Location", phone: "Phone",
+    email: "Email", jobTitle: "Job Title", exp: "Experience",
+    lastEmployer: "Last Employer", education: "Education", university: "University", gpa: "GPA",
+    loading: "Loading...", darkMode: "Dark Mode", lightMode: "Light Mode",
   },
 };
 
 export default function HRDashboard() {
   const router = useRouter();
-  const $ = createTheme(PRIMARY);
-  const G = PRIMARY;
 
+  const [dark, setDark] = useState(true);
   const [lang, setLang] = useState("ar");
   const t = (k) => T[lang][k] || k;
+  const $ = createTheme("#C9A84C", dark);
+  const G = "#C9A84C";
 
-  const [applicants, setApplicants] = useState(MOCK_APPLICANTS);
+  const [user, setUser] = useState(null);
+  const [applicants, setApplicants] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   const [selApplicant, setSelApplicant] = useState(null);
   const [hTab, setHTab] = useState("applicants");
   const [search, setSearch] = useState("");
-  const [fStatus, setFStatus] = useState(lang === "ar" ? "الكل" : "All");
+  const [fStatus, setFStatus] = useState("الكل");
   const [noteIn, setNoteIn] = useState("");
   const [showInterview, setShowInterview] = useState(false);
   const [interviewForm, setInterviewForm] = useState({ date: "", time: "", notes: "" });
   const [showSettings, setShowSettings] = useState(false);
   const [settingsCopied, setSettingsCopied] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/me")
+      .then((r) => r.json())
+      .then((me) => {
+        if (me.error) { router.push("/hr/login"); return; }
+        setUser(me);
+        const companyId = me.companyId;
+        const url = companyId ? `/api/applicants?companyId=${companyId}` : "/api/applicants";
+        return fetch(url).then((r) => r.json());
+      })
+      .then((data) => {
+        if (Array.isArray(data)) setApplicants(data);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const primaryColor = user?.primaryColor || G;
+  const companyName = user?.companyName || "لوحة الموارد البشرية";
+  const companyId = user?.companyId;
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/hr/login");
   };
 
+  const updateApplicant = async (id, updates) => {
+    setSaving(true);
+    await fetch(`/api/applicants/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    }).catch(() => {});
+    setApplicants((p) => p.map((a) => (a.id === id ? { ...a, ...updates } : a)));
+    if (selApplicant?.id === id) setSelApplicant((p) => ({ ...p, ...updates }));
+    setSaving(false);
+  };
+
+  const deleteApplicant = async (id) => {
+    await fetch(`/api/applicants/${id}`, { method: "DELETE" }).catch(() => {});
+    setApplicants((p) => p.filter((a) => a.id !== id));
+    setSelApplicant(null);
+  };
+
   const exportToExcel = () => {
     const data = applicants.map((a) => ({
-      الاسم: a.name,
-      البريد: a.email,
-      الهاتف: a.phone,
-      الجنسية: a.nationality,
-      الموقع: a.location,
-      "المسمى الوظيفي": a.currentTitle,
-      "سنوات الخبرة": a.experience,
-      "آخر جهة عمل": a.lastEmployer,
-      التعليم: a.education,
-      الجامعة: a.university,
-      "المعدل GPA": a.gpa,
-      الحالة: a.status,
-      التقييم: a.rating,
-      "تاريخ التقديم": a.date,
-      "موعد المقابلة": a.interviewDate || "—",
+      الاسم: a.name, البريد: a.email, الهاتف: a.phone,
+      الجنسية: a.nationality, الموقع: a.location,
+      "المسمى الوظيفي": a.currentTitle, "سنوات الخبرة": a.experience,
+      "آخر جهة عمل": a.lastEmployer, التعليم: a.education,
+      الجامعة: a.university, "المعدل GPA": a.gpa,
+      الحالة: a.status, التقييم: a.rating,
+      "تاريخ التقديم": a.date, "موعد المقابلة": a.interviewDate || "—",
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -181,33 +140,38 @@ export default function HRDashboard() {
     XLSX.writeFile(wb, `applicants_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-  const saveInterview = () => {
+  const saveInterview = async () => {
     if (!interviewForm.date || !interviewForm.time) return;
-    setApplicants((p) =>
-      p.map((a) =>
-        a.id === selApplicant.id
-          ? { ...a, interviewDate: interviewForm.date, interviewTime: interviewForm.time, interviewNotes: interviewForm.notes }
-          : a
-      )
-    );
-    setSelApplicant((p) => ({ ...p, interviewDate: interviewForm.date, interviewTime: interviewForm.time, interviewNotes: interviewForm.notes }));
+    await updateApplicant(selApplicant.id, {
+      interviewDate: interviewForm.date,
+      interviewTime: interviewForm.time,
+      interviewNotes: interviewForm.notes,
+    });
     setShowInterview(false);
   };
 
-  const statusValues = lang === "ar"
-    ? ["مراجعة", "مقبول", "مرفوض"]
-    : ["Under Review", "Accepted", "Rejected"];
+  const saveNote = async () => {
+    if (!noteIn.trim()) return;
+    await updateApplicant(selApplicant.id, { notes: noteIn });
+    setNoteIn("");
+  };
 
   const arStatus = { "Under Review": "مراجعة", "Accepted": "مقبول", "Rejected": "مرفوض" };
 
   const filtered = applicants.filter((a) => {
     const q = search.toLowerCase();
-    const matches = a.name?.toLowerCase().includes(q) || a.skills?.some((s) => s.toLowerCase().includes(q)) || a.nationality?.includes(search) || a.currentTitle?.toLowerCase().includes(q);
+    const matches =
+      a.name?.toLowerCase().includes(q) ||
+      a.skills?.some((s) => s.toLowerCase().includes(q)) ||
+      a.nationality?.includes(search) ||
+      a.currentTitle?.toLowerCase().includes(q);
     if (!matches) return false;
     if (fStatus === "الكل" || fStatus === "All") return true;
     const arF = arStatus[fStatus] || fStatus;
     return a.status === arF;
   });
+
+  const scheduledInterviews = applicants.filter((a) => a.interviewDate);
 
   const sidebarItems = [
     { k: "applicants", ic: "users", l: t("applicants") },
@@ -215,36 +179,46 @@ export default function HRDashboard() {
     { k: "reports", ic: "chart", l: t("reports") },
   ];
 
-  const scheduledInterviews = applicants.filter((a) => a.interviewDate);
+  if (loading) {
+    return (
+      <div style={{ ...$.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+          <div style={{ color: $.muted }}>{t("loading")}</div>
+        </div>
+      </div>
+    );
+  }
 
   if (selApplicant) return (
     <div style={{ ...$.app, direction: lang === "en" ? "ltr" : "rtl" }}>
-      <div style={{ background: "#0d0d15", borderBottom: `1px solid ${G}22`, padding: "13px 26px", display: "flex", alignItems: "center", gap: 14 }}>
+      <div style={{ background: $.surface2, borderBottom: `1px solid ${primaryColor}22`, padding: "13px 26px", display: "flex", alignItems: "center", gap: 14 }}>
         <button style={{ ...$.btn("g"), padding: "8px 14px", display: "flex", alignItems: "center", gap: 6, fontSize: 13 }} onClick={() => setSelApplicant(null)}>
           <Icon n="back" s={15} />{t("back")}
         </button>
         <div style={{ flex: 1 }}>
           <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800 }}>{selApplicant.name}</h2>
-          <span style={{ fontSize: 12, color: "#555" }}>{selApplicant.currentTitle}</span>
+          <span style={{ fontSize: 12, color: $.muted }}>{selApplicant.currentTitle}</span>
         </div>
         <Badge s={selApplicant.status} />
+        {saving && <span style={{ fontSize: 12, color: $.muted }}>💾 جاري الحفظ...</span>}
       </div>
 
       {showInterview && (
         <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <div style={{ ...$.card, width: 440, boxShadow: "0 30px 60px #000000cc" }}>
-            <h3 style={{ margin: "0 0 18px", fontSize: 16, color: G }}>📅 {t("scheduleInterview")}</h3>
+            <h3 style={{ margin: "0 0 18px", fontSize: 16, color: primaryColor }}>📅 {t("scheduleInterview")}</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div>
-                <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 5 }}>{t("interviewDate")}</label>
+                <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>{t("interviewDate")}</label>
                 <input type="date" style={$.inp} value={interviewForm.date} onChange={(e) => setInterviewForm((p) => ({ ...p, date: e.target.value }))} />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 5 }}>{t("interviewTime")}</label>
+                <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>{t("interviewTime")}</label>
                 <input type="time" style={$.inp} value={interviewForm.time} onChange={(e) => setInterviewForm((p) => ({ ...p, time: e.target.value }))} />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: "#666", display: "block", marginBottom: 5 }}>{t("interviewNotes")}</label>
+                <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>{t("interviewNotes")}</label>
                 <textarea style={{ ...$.inp, minHeight: 70, resize: "vertical" }} value={interviewForm.notes} onChange={(e) => setInterviewForm((p) => ({ ...p, notes: e.target.value }))} />
               </div>
               <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
@@ -258,12 +232,12 @@ export default function HRDashboard() {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 330px", gap: 22, padding: 26 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div style={{ ...$.card, border: `1px solid ${G}33`, background: `linear-gradient(135deg,${G}08,#12121a)` }}>
+          <div style={{ ...$.card, border: `1px solid ${primaryColor}33`, background: dark ? `linear-gradient(135deg,${primaryColor}08,${$.surface})` : `linear-gradient(135deg,${primaryColor}08,#fff)` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ color: G }}><Icon n="ai" s={19} /></div>
-              <h3 style={{ margin: 0, color: G, fontSize: 15 }}>{t("aiSummary")}</h3>
+              <div style={{ color: primaryColor }}><Icon n="ai" s={19} /></div>
+              <h3 style={{ margin: 0, color: primaryColor, fontSize: 15 }}>{t("aiSummary")}</h3>
             </div>
-            <p style={{ margin: 0, color: "#bbb", lineHeight: 1.8, fontSize: 14 }}>{selApplicant.aiSummary}</p>
+            <p style={{ margin: 0, color: $.muted, lineHeight: 1.8, fontSize: 14 }}>{selApplicant.aiSummary || "—"}</p>
           </div>
           <div style={$.card}>
             <h3 style={{ margin: "0 0 16px", fontSize: 15 }}>{t("fullInfo")}</h3>
@@ -280,8 +254,8 @@ export default function HRDashboard() {
                 [t("university"), selApplicant.university],
                 [t("gpa"), selApplicant.gpa],
               ].map(([l, v]) => (
-                <div key={l} style={{ background: "#0d0d15", borderRadius: 9, padding: 11 }}>
-                  <div style={{ fontSize: 11, color: "#444", marginBottom: 3 }}>{l}</div>
+                <div key={l} style={{ background: $.surface2, borderRadius: 9, padding: 11 }}>
+                  <div style={{ fontSize: 11, color: $.muted2, marginBottom: 3 }}>{l}</div>
                   <div style={{ fontSize: 13, fontWeight: 600 }}>{v || "—"}</div>
                 </div>
               ))}
@@ -291,7 +265,7 @@ export default function HRDashboard() {
             {[
               { t: t("skills"), items: selApplicant.skills, c: "#60a5fa" },
               { t: t("langs"), items: selApplicant.languages, c: "#34d399" },
-              { t: t("certs"), items: selApplicant.certifications, c: G },
+              { t: t("certs"), items: selApplicant.certifications, c: primaryColor },
             ].map((sec) => (
               <div key={sec.t} style={$.card}>
                 <h4 style={{ margin: "0 0 10px", color: sec.c, fontSize: 13 }}>{sec.t}</h4>
@@ -301,19 +275,19 @@ export default function HRDashboard() {
               </div>
             ))}
           </div>
+          {selApplicant.notes && (
+            <div style={$.card}>
+              <h4 style={{ margin: "0 0 8px", fontSize: 13, color: $.muted }}>📝 {t("notes")}</h4>
+              <p style={{ margin: 0, fontSize: 13, color: $.text, lineHeight: 1.7 }}>{selApplicant.notes}</p>
+            </div>
+          )}
         </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={$.card}>
             <h4 style={{ margin: "0 0 12px", fontSize: 14 }}>{t("decision")}</h4>
-            <Stars v={selApplicant.rating} sz={22} onChange={(r) => {
-              setApplicants((p) => p.map((a) => a.id === selApplicant.id ? { ...a, rating: r } : a));
-              setSelApplicant((p) => ({ ...p, rating: r }));
-            }} />
-            <select style={{ ...$.inp, marginTop: 12 }} value={selApplicant.status} onChange={(e) => {
-              const s = e.target.value;
-              setApplicants((p) => p.map((a) => a.id === selApplicant.id ? { ...a, status: s } : a));
-              setSelApplicant((p) => ({ ...p, status: s }));
-            }}>
+            <Stars v={selApplicant.rating} sz={22} onChange={(r) => updateApplicant(selApplicant.id, { rating: r })} />
+            <select style={{ ...$.inp, marginTop: 12 }} value={selApplicant.status} onChange={(e) => updateApplicant(selApplicant.id, { status: e.target.value })}>
               <option>مراجعة</option>
               <option>مقبول</option>
               <option>مرفوض</option>
@@ -322,13 +296,13 @@ export default function HRDashboard() {
           <div style={$.card}>
             <h4 style={{ margin: "0 0 10px", fontSize: 14 }}>{t("notes")}</h4>
             <textarea style={{ ...$.inp, minHeight: 85, resize: "vertical" }} placeholder={t("addNote")} value={noteIn} onChange={(e) => setNoteIn(e.target.value)} />
-            <button style={{ ...$.btn("p"), width: "100%", marginTop: 9, fontSize: 13 }} onClick={() => setNoteIn("")}>{t("save")}</button>
+            <button style={{ ...$.btn("p"), width: "100%", marginTop: 9, fontSize: 13 }} onClick={saveNote}>{t("save")}</button>
           </div>
           {selApplicant.interviewDate ? (
-            <div style={{ ...$.card, border: `1px solid ${G}33` }}>
-              <h4 style={{ margin: "0 0 10px", fontSize: 14, color: G }}>📅 {t("scheduled")}</h4>
+            <div style={{ ...$.card, border: `1px solid ${primaryColor}33` }}>
+              <h4 style={{ margin: "0 0 10px", fontSize: 14, color: primaryColor }}>📅 {t("scheduled")}</h4>
               <div style={{ fontSize: 13 }}>{selApplicant.interviewDate} — {selApplicant.interviewTime}</div>
-              {selApplicant.interviewNotes && <div style={{ fontSize: 12, color: "#666", marginTop: 6 }}>{selApplicant.interviewNotes}</div>}
+              {selApplicant.interviewNotes && <div style={{ fontSize: 12, color: $.muted, marginTop: 6 }}>{selApplicant.interviewNotes}</div>}
               <button style={{ ...$.btn("g"), width: "100%", marginTop: 10, fontSize: 13 }} onClick={() => { setInterviewForm({ date: selApplicant.interviewDate, time: selApplicant.interviewTime, notes: selApplicant.interviewNotes || "" }); setShowInterview(true); }}>
                 تعديل الموعد
               </button>
@@ -338,7 +312,7 @@ export default function HRDashboard() {
               <Icon n="cal" s={15} />{t("scheduleInterview")}
             </button>
           )}
-          <button style={{ ...$.btn("d"), padding: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13 }} onClick={() => { setApplicants((p) => p.filter((a) => a.id !== selApplicant.id)); setSelApplicant(null); }}>
+          <button style={{ ...$.btn("d"), padding: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13 }} onClick={() => deleteApplicant(selApplicant.id)}>
             <Icon n="del" s={14} />{t("deleteApplicant")}
           </button>
         </div>
@@ -352,7 +326,8 @@ export default function HRDashboard() {
         items={sidebarItems}
         active={hTab}
         go={setHTab}
-        primaryColor={PRIMARY}
+        primaryColor={primaryColor}
+        dark={dark}
         lang={lang}
         onLangToggle={() => setLang((l) => (l === "ar" ? "en" : "ar"))}
         foot={[
@@ -360,14 +335,18 @@ export default function HRDashboard() {
           { k: "o", ic: "out", l: t("logout"), fn: logout },
         ]}
       />
+
       <div style={{ flex: 1, padding: 26, overflow: "auto" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 26 }}>
           <div>
-            <div style={{ fontSize: 10, color: G, fontWeight: 900, letterSpacing: 3 }}>{t("portal")}</div>
-            <h1 style={{ margin: "4px 0 0", fontSize: 21, fontWeight: 900 }}>{COMPANY_NAME}</h1>
+            <div style={{ fontSize: 10, color: primaryColor, fontWeight: 900, letterSpacing: 3 }}>{t("portal")}</div>
+            <h1 style={{ margin: "4px 0 0", fontSize: 21, fontWeight: 900 }}>{companyName}</h1>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button style={{ ...$.btn("g"), fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => router.push("/applicant/apply/1")}>
+            <button onClick={() => setDark((d) => !d)} style={{ ...$.btn("s"), padding: "8px 14px", fontSize: 13 }}>
+              {dark ? "☀️" : "🌙"}
+            </button>
+            <button style={{ ...$.btn("g"), fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => companyId && router.push(`/applicant/apply/${companyId}`)}>
               <Icon n="lnk" s={15} />{t("applyLink")}
             </button>
             <button style={{ ...$.btn("p"), fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={exportToExcel}>
@@ -378,14 +357,14 @@ export default function HRDashboard() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginBottom: 22 }}>
           {[
-            { l: t("total"), v: applicants.length, c: G },
+            { l: t("total"), v: applicants.length, c: primaryColor },
             { l: t("review"), v: applicants.filter((a) => a.status === "مراجعة").length, c: "#60a5fa" },
             { l: t("accepted"), v: applicants.filter((a) => a.status === "مقبول").length, c: "#34d399" },
             { l: t("rejected"), v: applicants.filter((a) => a.status === "مرفوض").length, c: "#f87171" },
           ].map((s, i) => (
             <div key={i} style={$.st(s.c)}>
               <div style={{ fontSize: 26, fontWeight: 900, color: s.c }}>{s.v}</div>
-              <div style={{ fontSize: 11, color: "#444", marginTop: 4 }}>{s.l}</div>
+              <div style={{ fontSize: 11, color: $.muted, marginTop: 4 }}>{s.l}</div>
             </div>
           ))}
         </div>
@@ -394,7 +373,7 @@ export default function HRDashboard() {
           <>
             <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
               <div style={{ flex: 1, position: "relative" }}>
-                <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: "#444" }}><Icon n="srch" s={16} /></div>
+                <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: $.muted }}><Icon n="srch" s={16} /></div>
                 <input style={{ ...$.inp, paddingRight: 38 }} placeholder={t("search")} value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
               <select style={{ ...$.inp, width: 150 }} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
@@ -415,23 +394,23 @@ export default function HRDashboard() {
                 </thead>
                 <tbody>
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={7} style={{ ...$.td, textAlign: "center", color: "#444", padding: 40 }}>{t("noResults")}</td></tr>
+                    <tr><td colSpan={7} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>{applicants.length === 0 ? "لا يوجد متقدمون بعد" : t("noResults")}</td></tr>
                   ) : filtered.map((a) => (
-                    <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = "#1a1a2a"} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"} style={{ cursor: "pointer" }}>
+                    <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"} style={{ cursor: "pointer" }}>
                       <td style={$.td}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 35, height: 35, borderRadius: 9, background: `${G}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: G, fontSize: 15 }}>{(a.name || "؟")[0]}</div>
+                          <div style={{ width: 35, height: 35, borderRadius: 9, background: `${primaryColor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: primaryColor, fontSize: 15 }}>{(a.name || "؟")[0]}</div>
                           <div>
                             <div style={{ fontWeight: 700, fontSize: 13 }}>{a.name}</div>
-                            <div style={{ fontSize: 11, color: "#444" }}>{a.nationality} · {a.date}</div>
+                            <div style={{ fontSize: 11, color: $.muted }}>{a.nationality} · {a.date}</div>
                           </div>
-                          {a.interviewDate && <span style={{ ...$.tg(G), fontSize: 10 }}>📅</span>}
+                          {a.interviewDate && <span style={{ ...$.tg(primaryColor), fontSize: 10 }}>📅</span>}
                         </div>
                       </td>
-                      <td style={$.td}><div style={{ fontSize: 13 }}>{a.currentTitle}</div><div style={{ fontSize: 11, color: "#444" }}>{a.lastEmployer}</div></td>
+                      <td style={$.td}><div style={{ fontSize: 13 }}>{a.currentTitle}</div><div style={{ fontSize: 11, color: $.muted }}>{a.lastEmployer}</div></td>
                       <td style={$.td}><span style={$.tg()}>{a.experience}</span></td>
                       <td style={$.td}><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{(a.languages || []).slice(0, 2).map((l) => <span key={l} style={$.tg("#60a5fa")}>{l.split(" ")[0]}</span>)}</div></td>
-                      <td style={$.td}><Stars v={a.rating} onChange={(r) => setApplicants((p) => p.map((x) => x.id === a.id ? { ...x, rating: r } : x))} /></td>
+                      <td style={$.td}><Stars v={a.rating} onChange={(r) => updateApplicant(a.id, { rating: r })} /></td>
                       <td style={$.td}><Badge s={a.status} /></td>
                       <td style={$.td}>
                         <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={() => setSelApplicant(a)}>
@@ -450,21 +429,21 @@ export default function HRDashboard() {
           <div style={$.card}>
             <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>📅 {t("scheduledInterviews")}</h3>
             {scheduledInterviews.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 40, color: "#444", fontSize: 14 }}>{t("noInterviews")}</div>
+              <div style={{ textAlign: "center", padding: 40, color: $.muted, fontSize: 14 }}>{t("noInterviews")}</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {scheduledInterviews.map((a) => (
-                  <div key={a.id} style={{ background: "#0d0d15", borderRadius: 12, padding: 16, border: `1px solid ${G}22`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <div key={a.id} style={{ background: $.surface2, borderRadius: 12, padding: 16, border: `1px solid ${primaryColor}22`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 9, background: `${G}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: G, fontSize: 16 }}>{a.name[0]}</div>
+                      <div style={{ width: 38, height: 38, borderRadius: 9, background: `${primaryColor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: primaryColor, fontSize: 16 }}>{a.name[0]}</div>
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 14 }}>{a.name}</div>
-                        <div style={{ fontSize: 12, color: "#555" }}>{a.currentTitle}</div>
+                        <div style={{ fontSize: 12, color: $.muted }}>{a.currentTitle}</div>
                       </div>
                     </div>
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: G }}>{a.interviewDate}</div>
-                      <div style={{ fontSize: 12, color: "#555" }}>{a.interviewTime}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: primaryColor }}>{a.interviewDate}</div>
+                      <div style={{ fontSize: 12, color: $.muted }}>{a.interviewTime}</div>
                     </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <Badge s={a.status} />
@@ -474,78 +453,6 @@ export default function HRDashboard() {
                 ))}
               </div>
             )}
-          </div>
-        )}
-
-        {showSettings && (
-          <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div style={{ ...$.card, width: 460, boxShadow: "0 30px 60px #000000cc" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
-                <h3 style={{ margin: 0, fontSize: 17, color: G }}>⚙️ {t("settings")}</h3>
-                <button style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 20 }} onClick={() => setShowSettings(false)}>✕</button>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                <div style={{ padding: 14, background: "#0d0d15", borderRadius: 10, border: "1px solid #1e1e2e" }}>
-                  <div style={{ fontSize: 11, color: "#555", marginBottom: 8, fontWeight: 700 }}>{lang === "ar" ? "🌐 اللغة" : "🌐 Language"}</div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    {["ar", "en"].map((l) => (
-                      <button
-                        key={l}
-                        onClick={() => setLang(l)}
-                        style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: lang === l ? `2px solid ${G}` : "1px solid #2a2a3a", background: lang === l ? `${G}22` : "transparent", color: lang === l ? G : "#555", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13 }}
-                      >
-                        {l === "ar" ? "العربية" : "English"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ padding: 14, background: "#0d0d15", borderRadius: 10, border: "1px solid #1e1e2e" }}>
-                  <div style={{ fontSize: 11, color: "#555", marginBottom: 8, fontWeight: 700 }}>{lang === "ar" ? "🔗 رابط التقديم" : "🔗 Apply Link"}</div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <div style={{ flex: 1, background: "#12121a", border: "1px solid #2a2a3a", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {typeof window !== "undefined" ? window.location.origin : "https://smartcv.ae"}/applicant/apply/1
-                    </div>
-                    <button
-                      style={{ ...$.btn("p"), padding: "8px 14px", fontSize: 12, whiteSpace: "nowrap" }}
-                      onClick={() => {
-                        const link = `${window.location.origin}/applicant/apply/1`;
-                        navigator.clipboard.writeText(link).then(() => { setSettingsCopied(true); setTimeout(() => setSettingsCopied(false), 2000); });
-                      }}
-                    >
-                      {settingsCopied ? (lang === "ar" ? "✓ تم النسخ" : "✓ Copied") : (lang === "ar" ? "نسخ" : "Copy")}
-                    </button>
-                  </div>
-                </div>
-
-                <div style={{ padding: 14, background: "#0d0d15", borderRadius: 10, border: "1px solid #1e1e2e" }}>
-                  <div style={{ fontSize: 11, color: "#555", marginBottom: 4, fontWeight: 700 }}>{lang === "ar" ? "🏢 الشركة" : "🏢 Company"}</div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: G }}>{COMPANY_NAME}</div>
-                  <div style={{ fontSize: 11, color: "#333", marginTop: 4 }}>{lang === "ar" ? "خطة: Professional" : "Plan: Professional"}</div>
-                </div>
-
-                <div style={{ padding: 14, background: "#0d0d15", borderRadius: 10, border: "1px solid #1e1e2e" }}>
-                  <div style={{ fontSize: 11, color: "#555", marginBottom: 8, fontWeight: 700 }}>{lang === "ar" ? "📊 إحصاءات سريعة" : "📊 Quick Stats"}</div>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
-                    {[
-                      { l: lang === "ar" ? "إجمالي" : "Total", v: applicants.length, c: G },
-                      { l: lang === "ar" ? "مقبول" : "Accepted", v: applicants.filter((a) => a.status === "مقبول").length, c: "#34d399" },
-                      { l: lang === "ar" ? "مجدولة" : "Scheduled", v: applicants.filter((a) => a.interviewDate).length, c: "#60a5fa" },
-                    ].map((s) => (
-                      <div key={s.l} style={{ textAlign: "center", padding: 10, background: "#12121a", borderRadius: 8 }}>
-                        <div style={{ fontSize: 22, fontWeight: 900, color: s.c }}>{s.v}</div>
-                        <div style={{ fontSize: 10, color: "#444", marginTop: 3 }}>{s.l}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <button style={{ ...$.btn("p"), padding: 12, fontSize: 14 }} onClick={() => setShowSettings(false)}>
-                  {lang === "ar" ? "إغلاق" : "Close"}
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -559,9 +466,9 @@ export default function HRDashboard() {
                   <div key={s.l} style={{ marginBottom: 14 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13 }}>
                       <span style={{ color: s.c }}>{s.l}</span>
-                      <span style={{ color: "#555" }}>{n}</span>
+                      <span style={{ color: $.muted }}>{n}</span>
                     </div>
-                    <div style={{ height: 7, background: "#1a1a2a", borderRadius: 4 }}>
+                    <div style={{ height: 7, background: $.surface3, borderRadius: 4 }}>
                       <div style={{ height: "100%", background: s.c, borderRadius: 4, width: `${applicants.length ? (n / applicants.length) * 100 : 0}%` }} />
                     </div>
                   </div>
@@ -570,15 +477,91 @@ export default function HRDashboard() {
             </div>
             <div style={$.card}>
               <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>⭐ {t("avgRating")}</h3>
-              <div style={{ fontSize: 50, fontWeight: 900, color: G, textAlign: "center", padding: "20px 0" }}>
+              <div style={{ fontSize: 50, fontWeight: 900, color: primaryColor, textAlign: "center", padding: "20px 0" }}>
                 {applicants.filter((a) => a.rating > 0).length > 0
                   ? (applicants.filter((a) => a.rating > 0).reduce((s, a) => s + a.rating, 0) / applicants.filter((a) => a.rating > 0).length).toFixed(1)
                   : "—"}
               </div>
-              <div style={{ textAlign: "center", color: "#555", fontSize: 13 }}>{t("avgRatingAll")}</div>
-              <div style={{ marginTop: 16, padding: "12px", background: "#0d0d15", borderRadius: 10 }}>
-                <div style={{ fontSize: 12, color: "#555", marginBottom: 8 }}>المقابلات المجدولة</div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: G }}>{scheduledInterviews.length}</div>
+              <div style={{ textAlign: "center", color: $.muted, fontSize: 13 }}>{t("avgRatingAll")}</div>
+              <div style={{ marginTop: 16, padding: 12, background: $.surface2, borderRadius: 10 }}>
+                <div style={{ fontSize: 12, color: $.muted, marginBottom: 8 }}>{t("scheduledInterviews")}</div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: primaryColor }}>{scheduledInterviews.length}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showSettings && (
+          <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ ...$.card, width: 460, boxShadow: "0 30px 60px #000000cc" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
+                <h3 style={{ margin: 0, fontSize: 17, color: primaryColor }}>⚙️ {t("settings")}</h3>
+                <button style={{ background: "none", border: "none", color: $.muted, cursor: "pointer", fontSize: 20 }} onClick={() => setShowSettings(false)}>✕</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+
+                <div style={{ padding: 14, background: $.surface2, borderRadius: 10, border: `1px solid ${$.border}` }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 8, fontWeight: 700 }}>🎨 {lang === "ar" ? "المظهر" : "Appearance"}</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {[true, false].map((d) => (
+                      <button key={String(d)} onClick={() => setDark(d)}
+                        style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: dark === d ? `2px solid ${primaryColor}` : `1px solid ${$.border}`, background: dark === d ? `${primaryColor}22` : "transparent", color: dark === d ? primaryColor : $.muted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13 }}>
+                        {d ? "🌙 داكن" : "☀️ فاتح"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ padding: 14, background: $.surface2, borderRadius: 10, border: `1px solid ${$.border}` }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 8, fontWeight: 700 }}>🌐 {lang === "ar" ? "اللغة" : "Language"}</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {["ar", "en"].map((l) => (
+                      <button key={l} onClick={() => setLang(l)}
+                        style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: lang === l ? `2px solid ${primaryColor}` : `1px solid ${$.border}`, background: lang === l ? `${primaryColor}22` : "transparent", color: lang === l ? primaryColor : $.muted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13 }}>
+                        {l === "ar" ? "العربية" : "English"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ padding: 14, background: $.surface2, borderRadius: 10, border: `1px solid ${$.border}` }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 8, fontWeight: 700 }}>🔗 {lang === "ar" ? "رابط التقديم" : "Apply Link"}</div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <div style={{ flex: 1, background: $.surface3, border: `1px solid ${$.border}`, borderRadius: 8, padding: "8px 12px", fontSize: 11, color: $.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {typeof window !== "undefined" ? window.location.origin : "https://smartcv.ae"}/applicant/apply/{companyId || 1}
+                    </div>
+                    <button style={{ ...$.btn("p"), padding: "8px 14px", fontSize: 12, whiteSpace: "nowrap" }}
+                      onClick={() => { const link = `${window.location.origin}/applicant/apply/${companyId || 1}`; navigator.clipboard.writeText(link).then(() => { setSettingsCopied(true); setTimeout(() => setSettingsCopied(false), 2000); }); }}>
+                      {settingsCopied ? "✓ تم" : (lang === "ar" ? "نسخ" : "Copy")}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ padding: 14, background: $.surface2, borderRadius: 10, border: `1px solid ${$.border}` }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 4, fontWeight: 700 }}>🏢 {lang === "ar" ? "الشركة" : "Company"}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: primaryColor }}>{companyName}</div>
+                  <div style={{ fontSize: 11, color: $.muted2, marginTop: 4 }}>{user?.role === "hr_manager" ? "HR Manager" : "HR Officer"}</div>
+                </div>
+
+                <div style={{ padding: 14, background: $.surface2, borderRadius: 10, border: `1px solid ${$.border}` }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 8, fontWeight: 700 }}>📊 {lang === "ar" ? "إحصاءات سريعة" : "Quick Stats"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    {[
+                      { l: lang === "ar" ? "إجمالي" : "Total", v: applicants.length, c: primaryColor },
+                      { l: lang === "ar" ? "مقبول" : "Accepted", v: applicants.filter((a) => a.status === "مقبول").length, c: "#34d399" },
+                      { l: lang === "ar" ? "مجدولة" : "Scheduled", v: scheduledInterviews.length, c: "#60a5fa" },
+                    ].map((s) => (
+                      <div key={s.l} style={{ textAlign: "center", padding: 10, background: $.surface, borderRadius: 8 }}>
+                        <div style={{ fontSize: 22, fontWeight: 900, color: s.c }}>{s.v}</div>
+                        <div style={{ fontSize: 10, color: $.muted2, marginTop: 3 }}>{s.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button style={{ ...$.btn("p"), padding: 12, fontSize: 14 }} onClick={() => setShowSettings(false)}>
+                  {lang === "ar" ? "إغلاق" : "Close"}
+                </button>
               </div>
             </div>
           </div>

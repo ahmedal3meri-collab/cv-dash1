@@ -2,6 +2,35 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "../../../lib/supabase-server";
 import { MOCK_APPLICANTS } from "../../../lib/data";
 
+function mapApplicant(a) {
+  return {
+    id: a.id,
+    name: a.name,
+    nationality: a.nationality,
+    phone: a.phone,
+    email: a.email,
+    location: a.location,
+    currentTitle: a.current_title,
+    experience: a.experience,
+    lastEmployer: a.last_employer,
+    education: a.education,
+    university: a.university,
+    gpa: a.gpa,
+    skills: a.skills || [],
+    languages: a.languages || [],
+    certifications: a.certifications || [],
+    aiSummary: a.ai_summary,
+    status: a.status,
+    rating: a.rating,
+    notes: a.notes,
+    interviewDate: a.interview_date,
+    interviewTime: a.interview_time,
+    interviewNotes: a.interview_notes,
+    companyId: a.company_id,
+    date: a.created_at?.split("T")[0],
+  };
+}
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const companyId = searchParams.get("companyId");
@@ -19,7 +48,7 @@ export async function GET(request) {
   const { data, error } = await query;
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json(data);
+  return NextResponse.json((data || []).map(mapApplicant));
 }
 
 export async function POST(request) {
@@ -57,7 +86,7 @@ export async function POST(request) {
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(mapApplicant(data), { status: 201 });
   } catch {
     return NextResponse.json({ error: "خطأ داخلي" }, { status: 500 });
   }
