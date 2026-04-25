@@ -68,7 +68,12 @@ export default function HRDashboard() {
 
   const [user, setUser] = useState(null);
   const [applicants, setApplicants] = useState([]);
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [jobForm, setJobForm] = useState({ title: "", description: "", requirements: "", location: "", jobType: "دوام كامل" });
+  const [showJobForm, setShowJobForm] = useState(false);
+  const [jobLoading, setJobLoading] = useState(false);
+  const [copiedJob, setCopiedJob] = useState(null);
 
   const [selApplicant, setSelApplicant] = useState(null);
   const [hTab, setHTab] = useState("applicants");
@@ -89,10 +94,14 @@ export default function HRDashboard() {
         setUser(me);
         const companyId = me.companyId;
         const url = companyId ? `/api/applicants?companyId=${companyId}` : "/api/applicants";
-        return fetch(url).then((r) => r.json());
+        return Promise.all([
+          fetch(url).then((r) => r.json()),
+          fetch(`/api/jobs?companyId=${me.companyId}`).then((r) => r.json()),
+        ]);
       })
-      .then((data) => {
-        if (Array.isArray(data)) setApplicants(data);
+      .then(([apps, jbs]) => {
+        if (Array.isArray(apps)) setApplicants(apps);
+        if (Array.isArray(jbs)) setJobs(jbs);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -173,8 +182,50 @@ export default function HRDashboard() {
 
   const scheduledInterviews = applicants.filter((a) => a.interviewDate);
 
+  const addJob = async () => {
+    if (!jobForm.title) return;
+    setJobLoading(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...jobForm, companyId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setJobs((p) => [data, ...p]);
+        setShowJobForm(false);
+        setJobForm({ title: "", description: "", requirements: "", location: "", jobType: "دوام كامل" });
+      }
+    } finally {
+      setJobLoading(false);
+    }
+  };
+
+  const toggleJob = async (job) => {
+    await fetch(`/api/jobs/${job.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !job.isActive }),
+    });
+    setJobs((p) => p.map((j) => (j.id === job.id ? { ...j, isActive: !j.isActive } : j)));
+  };
+
+  const deleteJob = async (id) => {
+    await fetch(`/api/jobs/${id}`, { method: "DELETE" });
+    setJobs((p) => p.filter((j) => j.id !== id));
+  };
+
+  const copyJobLink = (token) => {
+    const link = `${window.location.origin}/applicant/apply/${token}`;
+    navigator.clipboard.writeText(link);
+    setCopiedJob(token);
+    setTimeout(() => setCopiedJob(null), 2000);
+  };
+
   const sidebarItems = [
     { k: "applicants", ic: "users", l: t("applicants") },
+    { k: "jobs", ic: "bag", l: t("jobs") },
     { k: "interviews", ic: "cal", l: t("interviews") },
     { k: "reports", ic: "chart", l: t("reports") },
   ];
@@ -423,6 +474,67 @@ export default function HRDashboard() {
               </table>
             </div>
           </>
+        )}
+
+        {hTab === "jobs" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <h3 style={{ margin: 0, fontSize: 18 }}>💼 {t("jobs")}</h3>
+              <button style={$.btn("p")} onClick={() => setShowJobForm(true)}>+ إضافة وظيفة</button>
+            </div>
+            {showJobForm && (
+              <div style={{ ...$.card, marginBottom: 18, border: `1px solid ${primaryColor}44` }}>
+                <h4 style={{ margin: "0 0 14px", color: primaryColor }}>وظيفة جديدة</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <input style={$.inp} placeholder="عنوان الوظيفة *" value={jobForm.title} onChange={(e) => setJobForm((p) => ({ ...p, title: e.target.value }))} />
+                  <input style={$.inp} placeholder="الموقع (أبوظبي، دبي...)" value={jobForm.location} onChange={(e) => setJobForm((p) => ({ ...p, location: e.target.value }))} />
+                  <select style={$.inp} value={jobForm.jobType} onChange={(e) => setJobForm((p) => ({ ...p, jobType: e.target.value }))}>
+                    <option>دوام كامل</option><option>دوام جزئي</option><option>عن بُعد</option><option>عقد مؤقت</option>
+                  </select>
+                </div>
+                <textarea style={{ ...$.inp, marginTop: 10, minHeight: 70, resize: "vertical" }} placeholder="وصف الوظيفة (اختياري)" value={jobForm.description} onChange={(e) => setJobForm((p) => ({ ...p, description: e.target.value }))} />
+                <textarea style={{ ...$.inp, marginTop: 10, minHeight: 70, resize: "vertical" }} placeholder="متطلبات الوظيفة (اختياري)" value={jobForm.requirements} onChange={(e) => setJobForm((p) => ({ ...p, requirements: e.target.value }))} />
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <button style={$.btn("p")} onClick={addJob} disabled={jobLoading || !jobForm.title}>{jobLoading ? "⏳ جاري الحفظ..." : "حفظ الوظيفة"}</button>
+                  <button style={$.btn("s")} onClick={() => setShowJobForm(false)}>إلغاء</button>
+                </div>
+              </div>
+            )}
+            {jobs.length === 0 ? (
+              <div style={{ ...$.card, textAlign: "center", padding: 48, color: $.muted }}>لا توجد وظائف. أضف أول وظيفة!</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {jobs.map((job) => (
+                  <div key={job.id} style={{ ...$.card, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", opacity: job.isActive ? 1 : 0.6 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 700, fontSize: 15 }}>{job.title}</span>
+                        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, fontWeight: 700, background: job.isActive ? "#05966922" : "#44444422", color: job.isActive ? "#34d399" : $.muted, border: `1px solid ${job.isActive ? "#05966944" : "#44444444"}` }}>
+                          {job.isActive ? "نشطة" : "متوقفة"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 12, color: $.muted }}>
+                        {job.location && `📍 ${job.location} · `}{job.jobType}
+                        {" · "}{applicants.filter((a) => a.jobId === job.id).length} متقدم
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <button
+                        style={{ ...$.btn("g"), padding: "7px 14px", fontSize: 12, color: copiedJob === job.applyToken ? "#34d399" : primaryColor }}
+                        onClick={() => copyJobLink(job.applyToken)}
+                      >
+                        {copiedJob === job.applyToken ? "✓ تم النسخ!" : "🔗 رابط التقديم"}
+                      </button>
+                      <button style={{ ...$.btn("s"), padding: "7px 12px", fontSize: 12 }} onClick={() => toggleJob(job)}>
+                        {job.isActive ? "إيقاف" : "تفعيل"}
+                      </button>
+                      <button style={{ ...$.btn("d"), padding: "7px 12px", fontSize: 12 }} onClick={() => deleteJob(job.id)}>حذف</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {hTab === "interviews" && (
