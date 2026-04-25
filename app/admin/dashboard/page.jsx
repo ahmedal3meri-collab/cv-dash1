@@ -80,7 +80,7 @@ export default function AdminDashboard() {
     const res = await fetch("/api/hr-accounts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newHR),
+      body: JSON.stringify({ ...newHR, callerRole: "superadmin" }),
     });
     const data = await res.json();
     if (res.ok) {
@@ -306,6 +306,7 @@ export default function AdminDashboard() {
                     <select style={$.inp} value={newHR.role} onChange={(e) => setNewHR((p) => ({ ...p, role: e.target.value }))}>
                       <option value="hr">HR Officer</option>
                       <option value="hr_manager">HR Manager</option>
+                      <option value="company_admin">Company Admin (أدمن الشركة)</option>
                     </select>
                   </div>
                 </div>
@@ -338,8 +339,8 @@ export default function AdminDashboard() {
                         <span style={$.tg(h.companies?.primary_color || G)}>{h.companies?.name || "—"}</span>
                       </td>
                       <td style={$.td}>
-                        <span style={$.tg(h.role === "hr_manager" ? "#a78bfa" : "#60a5fa")}>
-                          {h.role === "hr_manager" ? "HR Manager" : "HR Officer"}
+                        <span style={$.tg(h.role === "company_admin" ? "#f59e0b" : h.role === "hr_manager" ? "#a78bfa" : "#60a5fa")}>
+                          {h.role === "company_admin" ? "Company Admin" : h.role === "hr_manager" ? "HR Manager" : "HR Officer"}
                         </span>
                       </td>
                       <td style={$.td}>

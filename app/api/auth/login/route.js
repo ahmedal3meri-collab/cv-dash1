@@ -27,8 +27,9 @@ export async function POST(request) {
       }
     }
 
-    // HR — check Supabase hr_accounts if configured
-    if (isSupabaseConfigured() && (expectedRole === "hr" || !expectedRole)) {
+    // Company Admin + HR — check Supabase hr_accounts if configured
+    const supabaseRoles = ["hr", "hr_manager", "company_admin"];
+    if (isSupabaseConfigured() && (!expectedRole || supabaseRoles.includes(expectedRole))) {
       const supabase = getSupabaseAdmin();
       const { data: hrUser } = await supabase
         .from("hr_accounts")
@@ -38,6 +39,10 @@ export async function POST(request) {
         .single();
 
       if (hrUser) {
+        // role check
+        if (expectedRole && hrUser.role !== expectedRole) {
+          return NextResponse.json({ error: "لا تملك صلاحية الوصول لهذه البوابة" }, { status: 403 });
+        }
         const valid = await bcrypt.compare(password, hrUser.password_hash);
         if (!valid) {
           return NextResponse.json({ error: "بيانات الدخول غير صحيحة" }, { status: 401 });
@@ -51,7 +56,15 @@ export async function POST(request) {
           companyName: hrUser.companies?.name,
           primaryColor: hrUser.companies?.primary_color || "#C9A84C",
         });
+        // log login
         await supabase.from("hr_accounts").update({ last_login: new Date().toISOString() }).eq("id", hrUser.id);
+        await supabase.from("audit_log").insert({
+          action: "LOGIN",
+          target_id: hrUser.id,
+          performed_by: hrUser.name,
+          company_id: hrUser.company_id,
+          details: { role: hrUser.role },
+        }).catch(() => {});
         const response = NextResponse.json({
           success: true,
           role: hrUser.role,

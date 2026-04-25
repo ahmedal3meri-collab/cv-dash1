@@ -1,17 +1,24 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getSupabaseAdmin, isSupabaseConfigured } from "../../../lib/supabase-server";
+import { cookies } from "next/headers";
+import { verifyToken } from "../../../lib/auth";
 
-export async function GET() {
-  if (!isSupabaseConfigured()) {
-    return NextResponse.json([]);
-  }
+export async function GET(request) {
+  if (!isSupabaseConfigured()) return NextResponse.json([]);
+
+  const { searchParams } = new URL(request.url);
+  const filterCompanyId = searchParams.get("companyId");
+
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
+  let query = supabase
     .from("hr_accounts")
     .select("id, name, email, role, is_active, last_login, created_at, company_id, companies(name, primary_color)")
     .order("created_at", { ascending: false });
 
+  if (filterCompanyId) query = query.eq("company_id", filterCompanyId);
+
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data || []);
 }
@@ -19,7 +26,7 @@ export async function GET() {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { name, email, password, companyId, role } = body;
+    const { name, email, password, companyId, role, callerRole } = body;
 
     if (!name || !email || !password || !companyId) {
       return NextResponse.json({ error: "الاسم والبريد وكلمة المرور والشركة مطلوبة" }, { status: 400 });
@@ -27,6 +34,11 @@ export async function POST(request) {
 
     if (password.length < 8) {
       return NextResponse.json({ error: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" }, { status: 400 });
+    }
+
+    // فقط Super Admin يمكنه إنشاء company_admin
+    if (role === "company_admin" && callerRole !== "superadmin") {
+      return NextResponse.json({ error: "إنشاء Company Admin مخصص للسوبر أدمن فقط" }, { status: 403 });
     }
 
     if (!isSupabaseConfigured()) {
