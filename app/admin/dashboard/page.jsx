@@ -25,6 +25,7 @@ export default function AdminDashboard() {
   const [newCo, setNewCo] = useState({ name: "", plan: "Basic" });
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
+  const [editingColor, setEditingColor] = useState(null);
 
   // HR account form state
   const [showAddHR, setShowAddHR] = useState(false);
@@ -293,10 +294,28 @@ export default function AdminDashboard() {
                       </div>
                     ))}
                   </div>
-                  <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                     <button style={{ ...$.btn("g"), flex: 1, padding: "8px 0", fontSize: 12 }} onClick={() => router.push("/hr/login")}>عرض HR</button>
+                    <button title="تغيير اللون" style={{ padding: "8px 10px", borderRadius: 8, border: `2px solid ${c.primaryColor || G}`, background: `${c.primaryColor || G}22`, cursor: "pointer", fontSize: 16 }} onClick={() => setEditingColor(editingColor === c.id ? null : c.id)}>🎨</button>
                     <button style={{ ...$.btn("d"), padding: "8px 12px", fontSize: 12 }} onClick={() => deleteCompany(c.id)}><Icon n="del" s={14} /></button>
                   </div>
+                  {editingColor === c.id && (
+                    <div style={{ background: $.surface, borderRadius: 10, padding: 10, border: `1px solid ${$.border}`, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      {["#C9A84C", "#2563eb", "#059669", "#dc2626", "#7c3aed", "#0891b2", "#ea580c", "#db2777"].map((col) => (
+                        <button key={col} title={col} onClick={async () => {
+                          await fetch(`/api/companies/${c.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ primaryColor: col }) });
+                          setCompanies((p) => p.map((co) => co.id === c.id ? { ...co, primaryColor: col } : co));
+                          setEditingColor(null);
+                        }} style={{ width: 24, height: 24, borderRadius: "50%", background: col, border: (c.primaryColor || G) === col ? "3px solid #fff" : "2px solid transparent", cursor: "pointer" }} />
+                      ))}
+                      <input type="color" defaultValue={c.primaryColor || G} style={{ width: 28, height: 28, borderRadius: 6, border: "none", cursor: "pointer", background: "none" }}
+                        onChange={async (e) => {
+                          const col = e.target.value;
+                          await fetch(`/api/companies/${c.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ primaryColor: col }) });
+                          setCompanies((p) => p.map((co) => co.id === c.id ? { ...co, primaryColor: col } : co));
+                        }} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

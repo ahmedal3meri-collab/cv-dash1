@@ -85,6 +85,8 @@ export default function HRDashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsCopied, setSettingsCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [fJob, setFJob] = useState("all");
+  const [fRating, setFRating] = useState(0);
 
   useEffect(() => {
     fetch("/api/me")
@@ -175,10 +177,15 @@ export default function HRDashboard() {
       a.nationality?.includes(search) ||
       a.currentTitle?.toLowerCase().includes(q);
     if (!matches) return false;
-    if (fStatus === "الكل" || fStatus === "All") return true;
-    const arF = arStatus[fStatus] || fStatus;
-    return a.status === arF;
+    if (fStatus !== "الكل" && fStatus !== "All") {
+      const arF = arStatus[fStatus] || fStatus;
+      if (a.status !== arF) return false;
+    }
+    if (fJob !== "all" && a.jobId !== fJob) return false;
+    if (fRating > 0 && (a.rating || 0) < fRating) return false;
+    return true;
   });
+  const hasActiveFilter = fStatus !== "الكل" || fJob !== "all" || fRating > 0 || search;
 
   const scheduledInterviews = applicants.filter((a) => a.interviewDate);
 
@@ -398,7 +405,7 @@ export default function HRDashboard() {
             <button onClick={() => setDark((d) => !d)} style={{ ...$.btn("s"), padding: "8px 14px", fontSize: 13 }}>
               {dark ? "☀️" : "🌙"}
             </button>
-            <button style={{ ...$.btn("g"), fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => companyId && router.push(`/applicant/apply/${companyId}`)}>
+            <button style={{ ...$.btn("g"), fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => setHTab("jobs")}>
               <Icon n="lnk" s={15} />{t("applyLink")}
             </button>
             <button style={{ ...$.btn("p"), fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={exportToExcel}>
@@ -423,17 +430,39 @@ export default function HRDashboard() {
 
         {hTab === "applicants" && (
           <>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-              <div style={{ flex: 1, position: "relative" }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 10, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 180, position: "relative" }}>
                 <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: $.muted }}><Icon n="srch" s={16} /></div>
                 <input style={{ ...$.inp, paddingRight: 38 }} placeholder={t("search")} value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
-              <select style={{ ...$.inp, width: 150 }} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
+              <select style={{ ...$.inp, width: 140 }} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
                 <option value="الكل">{t("all")}</option>
                 <option value="مراجعة">{t("review")}</option>
                 <option value="مقبول">{t("accepted")}</option>
                 <option value="مرفوض">{t("rejected")}</option>
               </select>
+              {jobs.length > 0 && (
+                <select style={{ ...$.inp, width: 160 }} value={fJob} onChange={(e) => setFJob(e.target.value)}>
+                  <option value="all">كل الوظائف</option>
+                  {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
+                </select>
+              )}
+              <select style={{ ...$.inp, width: 140 }} value={fRating} onChange={(e) => setFRating(Number(e.target.value))}>
+                <option value={0}>كل التقييمات</option>
+                <option value={1}>★ فأكثر</option>
+                <option value={2}>★★ فأكثر</option>
+                <option value={3}>★★★ فأكثر</option>
+                <option value={4}>★★★★ فأكثر</option>
+                <option value={5}>★★★★★ فقط</option>
+              </select>
+              {hasActiveFilter && (
+                <button style={{ ...$.btn("s"), padding: "8px 14px", fontSize: 13 }} onClick={() => { setSearch(""); setFStatus("الكل"); setFJob("all"); setFRating(0); }}>
+                  ✕ مسح
+                </button>
+              )}
+            </div>
+            <div style={{ fontSize: 12, color: $.muted, marginBottom: 10 }}>
+              {filtered.length} من {applicants.length} متقدم
             </div>
             <div style={$.card}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -638,16 +667,30 @@ export default function HRDashboard() {
                 </div>
 
                 <div style={{ padding: 14, background: $.surface2, borderRadius: 10, border: `1px solid ${$.border}` }}>
-                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 8, fontWeight: 700 }}>🔗 {lang === "ar" ? "رابط التقديم" : "Apply Link"}</div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <div style={{ flex: 1, background: $.surface3, border: `1px solid ${$.border}`, borderRadius: 8, padding: "8px 12px", fontSize: 11, color: $.muted, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {typeof window !== "undefined" ? window.location.origin : "https://smartcv.ae"}/applicant/apply/{companyId || 1}
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 8, fontWeight: 700 }}>🔗 {lang === "ar" ? "روابط التقديم" : "Apply Links"}</div>
+                  {jobs.length === 0 ? (
+                    <div style={{ fontSize: 12, color: $.muted }}>
+                      {lang === "ar" ? "لا توجد وظائف — أضف وظيفة من تبويب الوظائف للحصول على رابط تقديم" : "No jobs yet — add a job from the Jobs tab to get an apply link"}
                     </div>
-                    <button style={{ ...$.btn("p"), padding: "8px 14px", fontSize: 12, whiteSpace: "nowrap" }}
-                      onClick={() => { const link = `${window.location.origin}/applicant/apply/${companyId || 1}`; navigator.clipboard.writeText(link).then(() => { setSettingsCopied(true); setTimeout(() => setSettingsCopied(false), 2000); }); }}>
-                      {settingsCopied ? "✓ تم" : (lang === "ar" ? "نسخ" : "Copy")}
-                    </button>
-                  </div>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {jobs.slice(0, 3).map((j) => {
+                        const link = `${typeof window !== "undefined" ? window.location.origin : ""}/applicant/apply/${j.applyToken}`;
+                        return (
+                          <div key={j.id} style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <div style={{ flex: 1, fontSize: 11, color: $.muted, background: $.surface3, borderRadius: 6, padding: "5px 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {j.title}: {link}
+                            </div>
+                            <button style={{ ...$.btn("p"), padding: "5px 10px", fontSize: 11, whiteSpace: "nowrap" }}
+                              onClick={() => { navigator.clipboard.writeText(link); setSettingsCopied(j.id); setTimeout(() => setSettingsCopied(false), 2000); }}>
+                              {settingsCopied === j.id ? "✓" : (lang === "ar" ? "نسخ" : "Copy")}
+                            </button>
+                          </div>
+                        );
+                      })}
+                      {jobs.length > 3 && <div style={{ fontSize: 11, color: $.muted }}>+{jobs.length - 3} {lang === "ar" ? "وظائف أخرى في تبويب الوظائف" : "more in Jobs tab"}</div>}
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ padding: 14, background: $.surface2, borderRadius: 10, border: `1px solid ${$.border}` }}>
