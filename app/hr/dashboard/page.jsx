@@ -92,6 +92,8 @@ export default function HRDashboard() {
   const [showCompare, setShowCompare] = useState(false);
   const [sortBy, setSortBy] = useState("date");
   const [sortDir, setSortDir] = useState("desc");
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   useEffect(() => {
     fetch("/api/me")
@@ -211,6 +213,8 @@ export default function HRDashboard() {
     else { setSortBy(col); setSortDir("desc"); }
   };
   const sortArrow = (col) => sortBy === col ? (sortDir === "asc" ? " ↑" : " ↓") : "";
+  const totalPages = Math.ceil(sortedFiltered.length / PAGE_SIZE);
+  const pagedApplicants = sortedFiltered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const scheduledInterviews = applicants.filter((a) => a.interviewDate);
 
@@ -523,7 +527,7 @@ export default function HRDashboard() {
                 <option value={5}>★★★★★ فقط</option>
               </select>
               {hasActiveFilter && (
-                <button style={{ ...$.btn("s"), padding: "8px 14px", fontSize: 13 }} onClick={() => { setSearch(""); setFStatus("الكل"); setFJob("all"); setFRating(0); }}>
+                <button style={{ ...$.btn("s"), padding: "8px 14px", fontSize: 13 }} onClick={() => { setSearch(""); setFStatus("الكل"); setFJob("all"); setFRating(0); setPage(1); }}>
                   ✕ مسح
                 </button>
               )}
@@ -574,7 +578,7 @@ export default function HRDashboard() {
                 <tbody>
                   {sortedFiltered.length === 0 ? (
                     <tr><td colSpan={8} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>{applicants.length === 0 ? "لا يوجد متقدمون بعد" : t("noResults")}</td></tr>
-                  ) : sortedFiltered.map((a) => (
+                  ) : pagedApplicants.map((a) => (
                     <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = selectedIds.includes(a.id) ? `${primaryColor}11` : "transparent"} style={{ cursor: "pointer", background: selectedIds.includes(a.id) ? `${primaryColor}11` : "transparent" }}>
                       <td style={{ ...$.td, width: 36 }}>
                         <input type="checkbox" checked={selectedIds.includes(a.id)} onChange={() => toggleSelected(a.id)} onClick={(e) => e.stopPropagation()} style={{ cursor: "pointer", accentColor: primaryColor }} />
@@ -609,6 +613,15 @@ export default function HRDashboard() {
                 </tbody>
               </table>
             </div>
+            {totalPages > 1 && (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 8, marginTop: 16 }}>
+                <button style={{ ...$.btn("s"), padding: "6px 12px", fontSize: 13 }} disabled={page === 1} onClick={() => setPage((p) => p - 1)}>← السابق</button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button key={p} style={{ ...$.btn(p === page ? "p" : "s"), padding: "6px 10px", fontSize: 13, minWidth: 36 }} onClick={() => setPage(p)}>{p}</button>
+                ))}
+                <button style={{ ...$.btn("s"), padding: "6px 12px", fontSize: 13 }} disabled={page === totalPages} onClick={() => setPage((p) => p + 1)}>التالي →</button>
+              </div>
+            )}
           </>
         )}
 
