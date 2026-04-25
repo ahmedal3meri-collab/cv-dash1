@@ -73,7 +73,7 @@ export default function ApplyPage({ params }) {
       setProg(85);
       setStep("💾 حفظ البيانات...");
 
-      await fetch("/api/applicants", {
+      const saveRes = await fetch("/api/applicants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -85,11 +85,12 @@ export default function ApplyPage({ params }) {
           rating: 0,
         }),
       });
+      const saved = saveRes.ok ? await saveRes.json() : {};
 
       setProg(100);
       setStep("✅ تم!");
       await new Promise((r) => setTimeout(r, 300));
-      setRequestId(Date.now().toString().slice(-6));
+      setRequestId(saved.id ? String(saved.id).slice(-6).toUpperCase() : Date.now().toString().slice(-6));
       setDone(true);
     } catch (e) {
       setErr(`❌ ${e.message}`);
