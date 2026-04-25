@@ -45,6 +45,10 @@ export default function CompanyAdminDashboard() {
   const [editModal, setEditModal] = useState(null); // { id, name, role }
   const [editLoading, setEditLoading] = useState(false);
 
+  // Self password change
+  const [selfPw, setSelfPw] = useState({ next: "", confirm: "" });
+  const [selfPwMsg, setSelfPwMsg] = useState({ text: "", ok: false });
+
   useEffect(() => {
     fetch("/api/me")
       .then((r) => r.json())
@@ -154,6 +158,26 @@ export default function CompanyAdminDashboard() {
     }, ...p]);
   };
 
+  const changeSelfPassword = async () => {
+    setSelfPwMsg({ text: "", ok: false });
+    if (!selfPw.next || selfPw.next.length < 8) { setSelfPwMsg({ text: "كلمة المرور الجديدة 8 أحرف على الأقل", ok: false }); return; }
+    if (selfPw.next !== selfPw.confirm) { setSelfPwMsg({ text: "كلمتا المرور غير متطابقتين", ok: false }); return; }
+    if (!user?.hrId) { setSelfPwMsg({ text: "لا يمكن تحديد الحساب", ok: false }); return; }
+    const res = await fetch(`/api/hr-accounts/${user.hrId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: selfPw.next }),
+    });
+    if (res.ok) {
+      setSelfPwMsg({ text: "✓ تم تغيير كلمة المرور بنجاح", ok: true });
+      setSelfPw({ next: "", confirm: "" });
+      addLog("CHANGE_PASSWORD", user?.name);
+    } else {
+      const d = await res.json();
+      setSelfPwMsg({ text: d.error || "حدث خطأ", ok: false });
+    }
+  };
+
   // ─── Helpers ──────────────────────────────────────────────
   const roleLabel = (r) => ({ hr: "HR Officer", hr_manager: "HR Manager", company_admin: "Company Admin" }[r] || r);
   const roleColor = (r) => ({ hr: "#60a5fa", hr_manager: "#a78bfa", company_admin: G }[r] || "#555");
@@ -188,9 +212,10 @@ export default function CompanyAdminDashboard() {
         </div>
         <div style={{ flex: 1, padding: "8px 0" }}>
           {[
-            { k: "overview", ic: "🏠", l: "نظرة عامة" },
-            { k: "hr",       ic: "👥", l: "إدارة HR" },
-            { k: "audit",    ic: "📋", l: "سجل النشاط" },
+            { k: "overview",  ic: "🏠", l: "نظرة عامة" },
+            { k: "hr",        ic: "👥", l: "إدارة HR" },
+            { k: "audit",     ic: "📋", l: "سجل النشاط" },
+            { k: "settings",  ic: "⚙️", l: "الإعدادات" },
           ].map((item) => (
             <div key={item.k} onClick={() => setTab(item.k)}
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px", margin: "2px 10px", borderRadius: 10, cursor: "pointer", background: tab === item.k ? `${G}1a` : "transparent", color: tab === item.k ? G : $.muted, borderRight: tab === item.k ? `3px solid ${G}` : "3px solid transparent", fontWeight: tab === item.k ? 700 : 400, fontSize: 14, transition: "all .2s" }}>
@@ -447,6 +472,72 @@ export default function CompanyAdminDashboard() {
                 })}
               </div>
             )}
+          </div>
+        )}
+
+        {/* ── Tab: Settings ── */}
+        {tab === "settings" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+            {/* Account info */}
+            <div style={$.card}>
+              <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>👤 معلومات الحساب</h3>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ background: $.surface2, borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 4 }}>الاسم</div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>{user?.name || "—"}</div>
+                </div>
+                <div style={{ background: $.surface2, borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 4 }}>البريد الإلكتروني</div>
+                  <div style={{ fontWeight: 700, fontSize: 14 }}>{user?.email || "—"}</div>
+                </div>
+                <div style={{ background: $.surface2, borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 4 }}>الصلاحية</div>
+                  <span style={$.tg(G)}>Company Admin</span>
+                </div>
+                <div style={{ background: $.surface2, borderRadius: 10, padding: 14 }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 4 }}>الشركة</div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: G }}>{companyName}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              {/* Appearance */}
+              <div style={$.card}>
+                <h3 style={{ margin: "0 0 16px", fontSize: 16 }}>🎨 المظهر</h3>
+                <div style={{ display: "flex", gap: 8 }}>
+                  {[true, false].map((d) => (
+                    <button key={String(d)} onClick={() => setDark(d)}
+                      style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: dark === d ? `2px solid ${G}` : `1px solid ${$.border}`, background: dark === d ? `${G}22` : "transparent", color: dark === d ? G : $.muted, cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13 }}>
+                      {d ? "🌙 داكن" : "☀️ فاتح"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Change password */}
+              <div style={$.card}>
+                <h3 style={{ margin: "0 0 16px", fontSize: 16 }}>🔑 تغيير كلمة المرور</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>كلمة المرور الجديدة (8+ أحرف)</label>
+                    <input style={$.inp} type="password" placeholder="••••••••" value={selfPw.next} onChange={(e) => setSelfPw((p) => ({ ...p, next: e.target.value }))} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>تأكيد كلمة المرور</label>
+                    <input style={$.inp} type="password" placeholder="••••••••" value={selfPw.confirm} onChange={(e) => setSelfPw((p) => ({ ...p, confirm: e.target.value }))} />
+                  </div>
+                  {selfPwMsg.text && (
+                    <div style={{ fontSize: 12, color: selfPwMsg.ok ? "#34d399" : "#f87171", padding: "6px 10px", background: selfPwMsg.ok ? "#05966911" : "#dc262611", borderRadius: 8, border: `1px solid ${selfPwMsg.ok ? "#34d39933" : "#f8717133"}` }}>
+                      {selfPwMsg.text}
+                    </div>
+                  )}
+                  <button style={{ ...$.btn("p"), padding: "10px 0", fontSize: 13 }} onClick={changeSelfPassword}>
+                    تحديث كلمة المرور
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

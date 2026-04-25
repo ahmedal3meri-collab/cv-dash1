@@ -40,18 +40,23 @@ export default function AdminDashboard() {
   const [hrRoleFilter, setHrRoleFilter] = useState("الكل");
   const [linkSearch, setLinkSearch] = useState("");
   const [linkCompanyFilter, setLinkCompanyFilter] = useState("all");
+  const [auditLog, setAuditLog] = useState([]);
+  const [auditSearch, setAuditSearch] = useState("");
+  const [auditActionFilter, setAuditActionFilter] = useState("الكل");
 
   useEffect(() => {
     Promise.all([
       fetch("/api/companies").then((r) => r.json()),
       fetch("/api/applicants").then((r) => r.json()),
       fetch("/api/hr-accounts").then((r) => r.json()),
+      fetch("/api/audit-log?limit=500").then((r) => r.json()),
     ])
-      .then(([cos, apps, hrs]) => {
+      .then(([cos, apps, hrs, logs]) => {
         const cosList = Array.isArray(cos) ? cos : [];
         setCompanies(cosList);
         setApplicants(Array.isArray(apps) ? apps : []);
         setHrAccounts(Array.isArray(hrs) ? hrs : []);
+        setAuditLog(Array.isArray(logs) ? logs : []);
         if (!Array.isArray(cos) && cos?.error) setLoadError(cos.error);
         // fetch jobs for all companies
         return Promise.all(cosList.map((c) => fetch(`/api/jobs?companyId=${c.id}`).then((r) => r.json()).catch(() => [])));
@@ -177,12 +182,33 @@ export default function AdminDashboard() {
     return true;
   });
 
+  const AUDIT_LABELS = {
+    LOGIN:            { l: "تسجيل دخول",    e: "🔐" },
+    UPDATE_APPLICANT: { l: "تعديل متقدم",   e: "✏️" },
+    DELETE_APPLICANT: { l: "حذف متقدم",     e: "🗑️" },
+    CHANGE_PASSWORD:  { l: "تغيير كلمة مرور", e: "🔑" },
+    CREATE_HR:        { l: "إنشاء حساب HR", e: "➕" },
+    DELETE_HR:        { l: "حذف حساب HR",   e: "❌" },
+    TOGGLE_HR:        { l: "تغيير حالة HR", e: "🔄" },
+  };
+
+  const filteredAudit = auditLog.filter((log) => {
+    if (auditActionFilter !== "الكل" && log.action !== auditActionFilter) return false;
+    if (auditSearch) {
+      const q = auditSearch.toLowerCase();
+      const details = typeof log.details === "string" ? JSON.parse(log.details || "{}") : (log.details || {});
+      if (!log.performed_by?.toLowerCase().includes(q) && !details.target?.toLowerCase().includes(q) && !log.action?.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
   const sidebarItems = [
     { k: "overview",  ic: "home",  l: "نظرة عامة" },
     { k: "companies", ic: "bld",   l: "الشركات" },
     { k: "hr",        ic: "users", l: "حسابات HR" },
     { k: "links",     ic: "lnk",   l: "روابط التقديم" },
     { k: "analytics", ic: "chart", l: "التحليلات" },
+    { k: "audit",     ic: "shld",  l: "سجل النشاط" },
   ];
 
   if (loading) {
@@ -732,6 +758,87 @@ export default function AdminDashboard() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {aTab === "audit" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+              {[
+                { l: "إجمالي الأحداث", v: auditLog.length, c: G },
+                { l: "تسجيلات الدخول", v: auditLog.filter((l) => l.action === "LOGIN").length, c: "#60a5fa" },
+                { l: "عمليات الحذف", v: auditLog.filter((l) => l.action?.includes("DELETE")).length, c: "#f87171" },
+              ].map((s) => (
+                <div key={s.l} style={$.st(s.c)}>
+                  <div style={{ fontSize: 30, fontWeight: 900, color: s.c }}>{s.v}</div>
+                  <div style={{ fontSize: 12, color: $.muted, marginTop: 6 }}>{s.l}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={$.card}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: 18 }}>🛡️ سجل الأحداث</h3>
+                  <p style={{ margin: "4px 0 0", color: $.muted, fontSize: 13 }}>مراقبة كاملة للنظام — امتثال PDPL 2023</p>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+                <input
+                  style={{ ...$.inp, flex: 1, minWidth: 200 }}
+                  placeholder="🔍 بحث بالاسم أو الإجراء..."
+                  value={auditSearch}
+                  onChange={(e) => setAuditSearch(e.target.value)}
+                />
+                <select style={{ ...$.inp, maxWidth: 180 }} value={auditActionFilter} onChange={(e) => setAuditActionFilter(e.target.value)}>
+                  <option value="الكل">كل الأحداث</option>
+                  {Object.keys(AUDIT_LABELS).map((a) => (
+                    <option key={a} value={a}>{AUDIT_LABELS[a].l}</option>
+                  ))}
+                </select>
+                {(auditSearch || auditActionFilter !== "الكل") && (
+                  <button style={{ ...$.btn("s"), padding: "8px 14px", fontSize: 13 }} onClick={() => { setAuditSearch(""); setAuditActionFilter("الكل"); }}>
+                    مسح
+                  </button>
+                )}
+                <span style={{ fontSize: 12, color: $.muted, alignSelf: "center", marginRight: "auto" }}>
+                  {filteredAudit.length} من {auditLog.length} حدث
+                </span>
+              </div>
+              {auditLog.length === 0 ? (
+                <div style={{ textAlign: "center", color: $.muted, padding: 50 }}>لا يوجد سجل نشاط بعد</div>
+              ) : filteredAudit.length === 0 ? (
+                <div style={{ textAlign: "center", color: $.muted, padding: 30 }}>لا توجد نتائج مطابقة</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {filteredAudit.map((log, i) => {
+                    const meta = AUDIT_LABELS[log.action] || { l: log.action, e: "📌" };
+                    const details = typeof log.details === "string" ? JSON.parse(log.details || "{}") : (log.details || {});
+                    const co = companies.find((c) => c.id === log.company_id || String(c.id) === String(log.company_id));
+                    return (
+                      <div key={log.id || i} style={{ background: $.surface2, borderRadius: 10, padding: "12px 16px", border: `1px solid ${$.border}`, display: "flex", alignItems: "center", gap: 14 }}>
+                        <div style={{ fontSize: 22, width: 36, textAlign: "center", flexShrink: 0 }}>{meta.e}</div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                            <span style={{ fontWeight: 700, fontSize: 13 }}>{meta.l}</span>
+                            {details.target && <span style={$.tg(G)}>{details.target}</span>}
+                            {co && <span style={$.tg(co.primaryColor || G)}>{co.name}</span>}
+                            {details.extra && <span style={{ fontSize: 11, color: $.muted }}>— {details.extra}</span>}
+                          </div>
+                          <div style={{ fontSize: 12, color: $.muted, marginTop: 3 }}>
+                            بواسطة: <strong style={{ color: $.text }}>{log.performed_by || "—"}</strong>
+                            {details.role && <span style={{ color: $.muted2 }}> ({details.role})</span>}
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 11, color: $.muted2, whiteSpace: "nowrap", flexShrink: 0 }}>
+                          {log.created_at ? new Date(log.created_at).toLocaleString("ar-AE", { dateStyle: "short", timeStyle: "short" }) : "—"}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         )}
