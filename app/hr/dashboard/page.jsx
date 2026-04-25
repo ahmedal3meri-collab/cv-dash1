@@ -149,6 +149,8 @@ export default function HRDashboard() {
   const [noteIn, setNoteIn] = useState("");
   const [showInterview, setShowInterview] = useState(false);
   const [interviewForm, setInterviewForm] = useState({ date: "", time: "", notes: "" });
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsCopied, setSettingsCopied] = useState(false);
 
   const logout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -354,7 +356,7 @@ export default function HRDashboard() {
         lang={lang}
         onLangToggle={() => setLang((l) => (l === "ar" ? "en" : "ar"))}
         foot={[
-          { k: "s", ic: "cfg", l: t("settings"), fn: () => {} },
+          { k: "s", ic: "cfg", l: t("settings"), fn: () => setShowSettings(true) },
           { k: "o", ic: "out", l: t("logout"), fn: logout },
         ]}
       />
@@ -472,6 +474,78 @@ export default function HRDashboard() {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {showSettings && (
+          <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ ...$.card, width: 460, boxShadow: "0 30px 60px #000000cc" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 22 }}>
+                <h3 style={{ margin: 0, fontSize: 17, color: G }}>⚙️ {t("settings")}</h3>
+                <button style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 20 }} onClick={() => setShowSettings(false)}>✕</button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div style={{ padding: 14, background: "#0d0d15", borderRadius: 10, border: "1px solid #1e1e2e" }}>
+                  <div style={{ fontSize: 11, color: "#555", marginBottom: 8, fontWeight: 700 }}>{lang === "ar" ? "🌐 اللغة" : "🌐 Language"}</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    {["ar", "en"].map((l) => (
+                      <button
+                        key={l}
+                        onClick={() => setLang(l)}
+                        style={{ flex: 1, padding: "9px 0", borderRadius: 8, border: lang === l ? `2px solid ${G}` : "1px solid #2a2a3a", background: lang === l ? `${G}22` : "transparent", color: lang === l ? G : "#555", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13 }}
+                      >
+                        {l === "ar" ? "العربية" : "English"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ padding: 14, background: "#0d0d15", borderRadius: 10, border: "1px solid #1e1e2e" }}>
+                  <div style={{ fontSize: 11, color: "#555", marginBottom: 8, fontWeight: 700 }}>{lang === "ar" ? "🔗 رابط التقديم" : "🔗 Apply Link"}</div>
+                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                    <div style={{ flex: 1, background: "#12121a", border: "1px solid #2a2a3a", borderRadius: 8, padding: "8px 12px", fontSize: 11, color: "#555", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {typeof window !== "undefined" ? window.location.origin : "https://smartcv.ae"}/applicant/apply/1
+                    </div>
+                    <button
+                      style={{ ...$.btn("p"), padding: "8px 14px", fontSize: 12, whiteSpace: "nowrap" }}
+                      onClick={() => {
+                        const link = `${window.location.origin}/applicant/apply/1`;
+                        navigator.clipboard.writeText(link).then(() => { setSettingsCopied(true); setTimeout(() => setSettingsCopied(false), 2000); });
+                      }}
+                    >
+                      {settingsCopied ? (lang === "ar" ? "✓ تم النسخ" : "✓ Copied") : (lang === "ar" ? "نسخ" : "Copy")}
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ padding: 14, background: "#0d0d15", borderRadius: 10, border: "1px solid #1e1e2e" }}>
+                  <div style={{ fontSize: 11, color: "#555", marginBottom: 4, fontWeight: 700 }}>{lang === "ar" ? "🏢 الشركة" : "🏢 Company"}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: G }}>{COMPANY_NAME}</div>
+                  <div style={{ fontSize: 11, color: "#333", marginTop: 4 }}>{lang === "ar" ? "خطة: Professional" : "Plan: Professional"}</div>
+                </div>
+
+                <div style={{ padding: 14, background: "#0d0d15", borderRadius: 10, border: "1px solid #1e1e2e" }}>
+                  <div style={{ fontSize: 11, color: "#555", marginBottom: 8, fontWeight: 700 }}>{lang === "ar" ? "📊 إحصاءات سريعة" : "📊 Quick Stats"}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                    {[
+                      { l: lang === "ar" ? "إجمالي" : "Total", v: applicants.length, c: G },
+                      { l: lang === "ar" ? "مقبول" : "Accepted", v: applicants.filter((a) => a.status === "مقبول").length, c: "#34d399" },
+                      { l: lang === "ar" ? "مجدولة" : "Scheduled", v: applicants.filter((a) => a.interviewDate).length, c: "#60a5fa" },
+                    ].map((s) => (
+                      <div key={s.l} style={{ textAlign: "center", padding: 10, background: "#12121a", borderRadius: 8 }}>
+                        <div style={{ fontSize: 22, fontWeight: 900, color: s.c }}>{s.v}</div>
+                        <div style={{ fontSize: 10, color: "#444", marginTop: 3 }}>{s.l}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <button style={{ ...$.btn("p"), padding: 12, fontSize: 14 }} onClick={() => setShowSettings(false)}>
+                  {lang === "ar" ? "إغلاق" : "Close"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
