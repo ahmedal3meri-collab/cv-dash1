@@ -253,6 +253,7 @@ export default function HRDashboard() {
         </div>
         <Badge s={selApplicant.status} />
         {saving && <span style={{ fontSize: 12, color: $.muted }}>💾 جاري الحفظ...</span>}
+        <button style={{ ...$.btn("g"), padding: "8px 14px", fontSize: 13 }} onClick={() => window.print()}>🖨️ طباعة / PDF</button>
       </div>
 
       {showInterview && (

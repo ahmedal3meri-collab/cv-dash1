@@ -16,6 +16,7 @@ export default function AdminDashboard() {
   const [companies, setCompanies] = useState([]);
   const [applicants, setApplicants] = useState([]);
   const [hrAccounts, setHrAccounts] = useState([]);
+  const [allJobs, setAllJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [aTab, setATab] = useState("overview");
@@ -38,10 +39,16 @@ export default function AdminDashboard() {
       fetch("/api/hr-accounts").then((r) => r.json()),
     ])
       .then(([cos, apps, hrs]) => {
-        setCompanies(Array.isArray(cos) ? cos : []);
+        const cosList = Array.isArray(cos) ? cos : [];
+        setCompanies(cosList);
         setApplicants(Array.isArray(apps) ? apps : []);
         setHrAccounts(Array.isArray(hrs) ? hrs : []);
         if (!Array.isArray(cos) && cos?.error) setLoadError(cos.error);
+        // fetch jobs for all companies
+        return Promise.all(cosList.map((c) => fetch(`/api/jobs?companyId=${c.id}`).then((r) => r.json()).catch(() => [])));
+      })
+      .then((jobsPerCompany) => {
+        if (Array.isArray(jobsPerCompany)) setAllJobs(jobsPerCompany.flat().filter(Boolean));
       })
       .catch(() => setLoadError("تعذر الاتصال بالخادم — تحقق من إعدادات Supabase"))
       .finally(() => setLoading(false));
@@ -403,68 +410,138 @@ export default function AdminDashboard() {
         )}
 
         {aTab === "links" && (
-          <div style={$.card}>
-            <h3 style={{ margin: "0 0 8px", fontSize: 18 }}>🔗 روابط التقديم</h3>
-            <p style={{ color: $.muted, fontSize: 13, marginBottom: 22 }}>شارك هذه الروابط عبر LinkedIn أو البريد الإلكتروني</p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {companies.length === 0 && (
-                <div style={{ textAlign: "center", color: $.muted, padding: 40 }}>لا توجد شركات مسجلة</div>
-              )}
-              {companies.map((c) => (
-                <div key={c.id} style={{ background: $.surface2, borderRadius: 12, padding: 16, border: `1px solid ${$.border}`, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 9, background: `${c.primaryColor || G}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: c.primaryColor || G }}>{(c.name || "?")[0]}</div>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>{c.name}</div>
-                      <div style={{ fontFamily: "monospace", fontSize: 12, color: "#60a5fa", background: $.surface3, padding: "3px 10px", borderRadius: 6, display: "inline-block" }}>
-                        {typeof window !== "undefined" ? window.location.origin : "https://smartcv.ae"}/applicant/apply/{c.id}
+          <div>
+            <div style={{ ...$.card, marginBottom: 18 }}>
+              <h3 style={{ margin: "0 0 6px", fontSize: 18 }}>🔗 روابط التقديم</h3>
+              <p style={{ color: $.muted, fontSize: 13, margin: 0 }}>كل وظيفة لها رابط فريد — تُدار من بوابة HR → تبويب الوظائف</p>
+            </div>
+            {allJobs.length === 0 ? (
+              <div style={{ ...$.card, textAlign: "center", padding: 48, color: $.muted }}>
+                لا توجد وظائف منشورة بعد — أضفها من بوابة HR
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {allJobs.map((job) => {
+                  const company = companies.find((c) => c.id === job.companyId);
+                  const link = `${typeof window !== "undefined" ? window.location.origin : ""}/applicant/apply/${job.applyToken}`;
+                  return (
+                    <div key={job.id} style={{ background: $.surface, border: `1px solid ${$.border}`, borderRadius: 12, padding: "14px 18px", display: "flex", alignItems: "center", gap: 14, opacity: job.isActive ? 1 : 0.5 }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 9, background: `${company?.primaryColor || G}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: company?.primaryColor || G, flexShrink: 0 }}>
+                        {(company?.name || "?")[0]}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14 }}>{job.title}</div>
+                        <div style={{ fontSize: 12, color: $.muted, marginBottom: 4 }}>{company?.name} {!job.isActive && "· متوقفة"}</div>
+                        <div style={{ fontFamily: "monospace", fontSize: 11, color: "#60a5fa", background: $.surface3, padding: "3px 10px", borderRadius: 6, display: "inline-block", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{link}</div>
+                      </div>
+                      <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                        <button style={{ ...$.btn("g"), padding: "7px 12px", fontSize: 12 }} onClick={() => { navigator.clipboard.writeText(link); setCopied(job.id); setTimeout(() => setCopied(null), 2000); }}>
+                          {copied === job.id ? "✓ تم!" : "نسخ"}
+                        </button>
+                        <a href={link} target="_blank" rel="noreferrer" style={{ ...$.btn("s"), padding: "7px 12px", fontSize: 12, textDecoration: "none" }}>معاينة</a>
                       </div>
                     </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button style={{ ...$.btn("g"), padding: "8px 12px", fontSize: 12 }} onClick={() => copyLink(c.id)}>
-                      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                        <Icon n={copied === c.id ? "ok" : "cp"} s={14} />{copied === c.id ? "تم!" : "نسخ"}
-                      </span>
-                    </button>
-                    <button style={{ ...$.btn("p"), padding: "8px 12px", fontSize: 12 }} onClick={() => router.push(`/applicant/apply/${c.id}`)}>معاينة</button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
         {aTab === "analytics" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-            <div style={$.card}>
-              <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>📊 حالات المتقدمين</h3>
-              {[{ l: "مراجعة", c: "#60a5fa" }, { l: "مقبول", c: "#34d399" }, { l: "مرفوض", c: "#f87171" }].map((s) => {
-                const n = applicants.filter((a) => a.status === s.l).length;
-                return (
-                  <div key={s.l} style={{ marginBottom: 16 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13 }}>
-                      <span style={{ color: s.c }}>{s.l}</span>
-                      <span style={{ color: $.muted }}>{n}</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            {/* Status breakdown */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+              <div style={$.card}>
+                <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>📊 حالات المتقدمين</h3>
+                {[{ l: "مراجعة", c: "#60a5fa" }, { l: "مقبول", c: "#34d399" }, { l: "مرفوض", c: "#f87171" }].map((s) => {
+                  const n = applicants.filter((a) => a.status === s.l).length;
+                  return (
+                    <div key={s.l} style={{ marginBottom: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13 }}>
+                        <span style={{ color: s.c }}>{s.l}</span>
+                        <span style={{ color: $.muted }}>{n} ({applicants.length ? Math.round(n / applicants.length * 100) : 0}%)</span>
+                      </div>
+                      <div style={{ height: 7, background: $.surface3, borderRadius: 4 }}>
+                        <div style={{ height: "100%", background: s.c, borderRadius: 4, width: `${applicants.length ? (n / applicants.length) * 100 : 0}%`, transition: "width 1s" }} />
+                      </div>
                     </div>
-                    <div style={{ height: 7, background: $.surface3, borderRadius: 4 }}>
-                      <div style={{ height: "100%", background: s.c, borderRadius: 4, width: `${applicants.length ? (n / applicants.length) * 100 : 0}%` }} />
+                  );
+                })}
+              </div>
+              <div style={$.card}>
+                <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>💰 الإيرادات التقديرية</h3>
+                {[{ p: "Enterprise", pr: "50,000+", c: G }, { p: "Professional", pr: "28,000", c: "#60a5fa" }, { p: "Basic", pr: "15,000", c: "#34d399" }].map((r) => {
+                  const count = companies.filter((c) => c.plan === r.p).length;
+                  return (
+                    <div key={r.p} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${$.border}` }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={$.tg(r.c)}>{r.p}</span>
+                        <span style={{ fontSize: 12, color: $.muted }}>{count} شركة</span>
+                      </div>
+                      <span style={{ color: r.c, fontWeight: 900 }}>{r.pr} <span style={{ fontSize: 11 }}>درهم</span></span>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div style={$.card}>
-              <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>💰 الإيرادات التقديرية</h3>
-              {[{ p: "Enterprise", pr: "50,000+", c: G }, { p: "Professional", pr: "28,000", c: "#60a5fa" }, { p: "Basic", pr: "15,000", c: "#34d399" }].map((r) => (
-                <div key={r.p} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: `1px solid ${$.border}` }}>
-                  <span style={$.tg(r.c)}>{r.p}</span>
-                  <span style={{ color: r.c, fontWeight: 900, fontSize: 15 }}>{r.pr} <span style={{ fontSize: 11 }}>درهم</span></span>
+                  );
+                })}
+                <div style={{ marginTop: 14, background: `${G}0d`, borderRadius: 10, padding: 14, border: `1px solid ${G}22` }}>
+                  <div style={{ fontSize: 11, color: $.muted }}>إجمالي الشركات النشطة</div>
+                  <div style={{ fontSize: 30, fontWeight: 900, color: G }}>{companies.length}</div>
                 </div>
-              ))}
-              <div style={{ marginTop: 14, background: `${G}0d`, borderRadius: 10, padding: 14, border: `1px solid ${G}22` }}>
-                <div style={{ fontSize: 11, color: $.muted }}>هامش الربح</div>
-                <div style={{ fontSize: 30, fontWeight: 900, color: G }}>98%+</div>
+              </div>
+            </div>
+
+            {/* Per-company breakdown */}
+            <div style={$.card}>
+              <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>🏢 المتقدمون بحسب الشركة</h3>
+              {companies.length === 0 ? (
+                <div style={{ textAlign: "center", color: $.muted, padding: 24 }}>لا توجد شركات</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {companies.map((c) => {
+                    const coApps = applicants.filter((a) => a.companyId === c.id || a.companyId === String(c.id));
+                    const accepted = coApps.filter((a) => a.status === "مقبول").length;
+                    const coJobs = allJobs.filter((j) => j.companyId === c.id).length;
+                    const coHR = hrAccounts.filter((h) => h.companyId === c.id).length;
+                    const maxApps = Math.max(...companies.map((co) => applicants.filter((a) => a.companyId === co.id || a.companyId === String(co.id)).length), 1);
+                    return (
+                      <div key={c.id} style={{ background: $.surface2, borderRadius: 10, padding: "14px 16px" }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: 8, background: `${c.primaryColor || G}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: c.primaryColor || G, fontSize: 14 }}>{(c.name || "?")[0]}</div>
+                            <div>
+                              <div style={{ fontWeight: 700, fontSize: 13 }}>{c.name}</div>
+                              <div style={{ fontSize: 11, color: $.muted }}>{coJobs} وظيفة · {coHR} HR</div>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 12, fontSize: 12 }}>
+                            <span style={{ color: "#60a5fa" }}>{coApps.length} متقدم</span>
+                            <span style={{ color: "#34d399" }}>{accepted} مقبول</span>
+                            <span style={$.tg(c.primaryColor || G)}>{c.plan}</span>
+                          </div>
+                        </div>
+                        <div style={{ height: 5, background: $.surface3, borderRadius: 3 }}>
+                          <div style={{ height: "100%", background: c.primaryColor || G, borderRadius: 3, width: `${(coApps.length / maxApps) * 100}%`, transition: "width 1s" }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* HR accounts activity */}
+            <div style={$.card}>
+              <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>👥 نشاط حسابات HR</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+                {[{ l: "إجمالي الحسابات", v: hrAccounts.length, c: G },
+                  { l: "حسابات نشطة", v: hrAccounts.filter((h) => h.isActive !== false).length, c: "#34d399" },
+                  { l: "مديرو HR", v: hrAccounts.filter((h) => h.role === "hr_manager").length, c: "#818cf8" },
+                ].map((s) => (
+                  <div key={s.l} style={{ background: $.surface2, borderRadius: 10, padding: 16, textAlign: "center" }}>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: s.c }}>{s.v}</div>
+                    <div style={{ fontSize: 12, color: $.muted, marginTop: 4 }}>{s.l}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
