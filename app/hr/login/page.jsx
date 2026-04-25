@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Icon from "@/components/shared/Icon";
+import Icon from "../../../components/shared/Icon";
 
 const G = "#C9A84C";
 

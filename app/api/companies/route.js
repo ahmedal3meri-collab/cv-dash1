@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase-server";
-import { MOCK_COMPANIES } from "@/lib/data";
+import { getSupabaseAdmin, isSupabaseConfigured } from "../../../../lib/supabase-server";
+import { MOCK_COMPANIES } from "../../../../lib/data";
 
 export async function GET() {
   if (!isSupabaseConfigured()) {

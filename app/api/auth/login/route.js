@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { signToken, setAuthCookie } from "@/lib/auth";
-import { DEMO_USERS } from "@/lib/data";
+import { signToken, setAuthCookie } from "../../../../lib/auth";
+import { DEMO_USERS } from "../../../../lib/data";
 
 export async function POST(request) {
   try {

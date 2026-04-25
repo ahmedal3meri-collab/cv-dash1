@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase-server";
+import { getSupabaseAdmin, isSupabaseConfigured } from "../../../../../lib/supabase-server";
 
 export async function PUT(request, { params }) {
   const { id } = await params;
