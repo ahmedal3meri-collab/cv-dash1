@@ -38,6 +38,8 @@ export default function AdminDashboard() {
   const [hrError, setHrError] = useState("");
   const [hrSearch, setHrSearch] = useState("");
   const [hrRoleFilter, setHrRoleFilter] = useState("الكل");
+  const [linkSearch, setLinkSearch] = useState("");
+  const [linkCompanyFilter, setLinkCompanyFilter] = useState("all");
 
   useEffect(() => {
     Promise.all([
@@ -166,6 +168,12 @@ export default function AdminDashboard() {
     const q = hrSearch.toLowerCase();
     if (q && !h.name?.toLowerCase().includes(q) && !h.email?.toLowerCase().includes(q)) return false;
     if (hrRoleFilter !== "الكل" && h.role !== hrRoleFilter) return false;
+    return true;
+  });
+
+  const filteredLinks = allJobs.filter((j) => {
+    if (linkSearch && !j.title?.toLowerCase().includes(linkSearch.toLowerCase())) return false;
+    if (linkCompanyFilter !== "all" && j.companyId !== linkCompanyFilter) return false;
     return true;
   });
 
@@ -572,16 +580,37 @@ export default function AdminDashboard() {
         {aTab === "links" && (
           <div>
             <div style={{ ...$.card, marginBottom: 18 }}>
-              <h3 style={{ margin: "0 0 6px", fontSize: 18 }}>🔗 روابط التقديم</h3>
-              <p style={{ color: $.muted, fontSize: 13, margin: 0 }}>كل وظيفة لها رابط فريد — تُدار من بوابة HR → تبويب الوظائف</p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
+                <div>
+                  <h3 style={{ margin: "0 0 4px", fontSize: 18 }}>🔗 روابط التقديم</h3>
+                  <p style={{ color: $.muted, fontSize: 13, margin: 0 }}>كل وظيفة لها رابط فريد — تُدار من بوابة HR → تبويب الوظائف</p>
+                </div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <input
+                    style={{ ...$.inp, maxWidth: 200, fontSize: 13 }}
+                    placeholder="🔍 بحث في الوظائف..."
+                    value={linkSearch}
+                    onChange={(e) => setLinkSearch(e.target.value)}
+                  />
+                  <select style={{ ...$.inp, maxWidth: 180, fontSize: 13 }} value={linkCompanyFilter} onChange={(e) => setLinkCompanyFilter(e.target.value)}>
+                    <option value="all">كل الشركات</option>
+                    {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              </div>
+              {(linkSearch || linkCompanyFilter !== "all") && (
+                <div style={{ marginTop: 10, fontSize: 12, color: $.muted }}>{filteredLinks.length} من {allJobs.length} وظيفة</div>
+              )}
             </div>
             {allJobs.length === 0 ? (
               <div style={{ ...$.card, textAlign: "center", padding: 48, color: $.muted }}>
                 لا توجد وظائف منشورة بعد — أضفها من بوابة HR
               </div>
+            ) : filteredLinks.length === 0 ? (
+              <div style={{ ...$.card, textAlign: "center", padding: 32, color: $.muted }}>لا توجد نتائج مطابقة</div>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {allJobs.map((job) => {
+                {filteredLinks.map((job) => {
                   const company = companies.find((c) => c.id === job.companyId);
                   const link = `${typeof window !== "undefined" ? window.location.origin : ""}/applicant/apply/${job.applyToken}`;
                   return (
