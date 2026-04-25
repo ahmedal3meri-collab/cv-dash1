@@ -87,7 +87,7 @@ export default function HRDashboard() {
   const [saving, setSaving] = useState(false);
   const [fJob, setFJob] = useState("all");
   const [fRating, setFRating] = useState(0);
-  const [compareIds, setCompareIds] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [showCompare, setShowCompare] = useState(false);
 
   useEffect(() => {
@@ -232,12 +232,16 @@ export default function HRDashboard() {
     setTimeout(() => setCopiedJob(null), 2000);
   };
 
-  const toggleCompare = (id) => {
-    setCompareIds((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      if (prev.length >= 2) return [prev[1], id];
-      return [...prev, id];
-    });
+  const toggleSelected = (id) => {
+    setSelectedIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+
+  const bulkUpdateStatus = async (status) => {
+    await Promise.all(selectedIds.map((id) =>
+      fetch(`/api/applicants/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) })
+    ));
+    setApplicants((p) => p.map((a) => selectedIds.includes(a.id) ? { ...a, status } : a));
+    setSelectedIds([]);
   };
 
   const sidebarItems = [
@@ -473,13 +477,15 @@ export default function HRDashboard() {
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
               <div style={{ fontSize: 12, color: $.muted }}>{filtered.length} من {applicants.length} متقدم</div>
-              {compareIds.length > 0 && (
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: primaryColor }}>{compareIds.length}/2 محدد للمقارنة</span>
-                  {compareIds.length === 2 && (
+              {selectedIds.length > 0 && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <span style={{ fontSize: 12, color: primaryColor, fontWeight: 700 }}>{selectedIds.length} محدد</span>
+                  {selectedIds.length === 2 && (
                     <button style={{ ...$.btn("p"), padding: "6px 14px", fontSize: 12 }} onClick={() => setShowCompare(true)}>⚖️ مقارنة</button>
                   )}
-                  <button style={{ ...$.btn("s"), padding: "6px 10px", fontSize: 12 }} onClick={() => setCompareIds([])}>✕</button>
+                  <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12 }} onClick={() => bulkUpdateStatus("مقبول")}>✓ قبول الكل</button>
+                  <button style={{ ...$.btn("d"), padding: "6px 12px", fontSize: 12 }} onClick={() => bulkUpdateStatus("مرفوض")}>✗ رفض الكل</button>
+                  <button style={{ ...$.btn("s"), padding: "6px 10px", fontSize: 12 }} onClick={() => setSelectedIds([])}>✕ إلغاء</button>
                 </div>
               )}
             </div>
@@ -487,7 +493,17 @@ export default function HRDashboard() {
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {["", t("name"), t("title"), t("experience"), t("languages"), t("rating"), t("status"), ""].map((h) => (
+                    <th style={$.th}>
+                    <input type="checkbox"
+                      checked={filtered.length > 0 && filtered.every((a) => selectedIds.includes(a.id))}
+                      onChange={() => {
+                        const allSelected = filtered.every((a) => selectedIds.includes(a.id));
+                        setSelectedIds(allSelected ? [] : filtered.map((a) => a.id));
+                      }}
+                      style={{ cursor: "pointer", accentColor: primaryColor }}
+                    />
+                  </th>
+                  {[t("name"), t("title"), t("experience"), t("languages"), t("rating"), t("status"), ""].map((h) => (
                       <th key={h} style={$.th}>{h}</th>
                     ))}
                   </tr>
@@ -496,9 +512,9 @@ export default function HRDashboard() {
                   {filtered.length === 0 ? (
                     <tr><td colSpan={7} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>{applicants.length === 0 ? "لا يوجد متقدمون بعد" : t("noResults")}</td></tr>
                   ) : filtered.map((a) => (
-                    <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = compareIds.includes(a.id) ? `${primaryColor}11` : "transparent"} style={{ cursor: "pointer", background: compareIds.includes(a.id) ? `${primaryColor}11` : "transparent" }}>
+                    <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = selectedIds.includes(a.id) ? `${primaryColor}11` : "transparent"} style={{ cursor: "pointer", background: selectedIds.includes(a.id) ? `${primaryColor}11` : "transparent" }}>
                       <td style={{ ...$.td, width: 36 }}>
-                        <input type="checkbox" checked={compareIds.includes(a.id)} onChange={() => toggleCompare(a.id)} onClick={(e) => e.stopPropagation()} style={{ cursor: "pointer", accentColor: primaryColor }} />
+                        <input type="checkbox" checked={selectedIds.includes(a.id)} onChange={() => toggleSelected(a.id)} onClick={(e) => e.stopPropagation()} style={{ cursor: "pointer", accentColor: primaryColor }} />
                       </td>
                       <td style={$.td}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -655,8 +671,8 @@ export default function HRDashboard() {
           </div>
         )}
 
-        {showCompare && compareIds.length === 2 && (() => {
-          const [a1, a2] = compareIds.map((id) => applicants.find((a) => a.id === id)).filter(Boolean);
+        {showCompare && selectedIds.length === 2 && (() => {
+          const [a1, a2] = selectedIds.map((id) => applicants.find((a) => a.id === id)).filter(Boolean);
           if (!a1 || !a2) return null;
           const fields = [
             ["الجنسية", "nationality"], ["الموقع", "location"], ["المسمى", "currentTitle"],
