@@ -26,6 +26,8 @@ export default function AdminDashboard() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
   const [editingColor, setEditingColor] = useState(null);
+  const [companySearch, setCompanySearch] = useState("");
+  const [companyPlanFilter, setCompanyPlanFilter] = useState("الكل");
 
   // HR account form state
   const [showAddHR, setShowAddHR] = useState(false);
@@ -134,6 +136,13 @@ export default function AdminDashboard() {
       setTimeout(() => setCopied(null), 2000);
     });
   };
+
+  const filteredCompanies = companies.filter((c) => {
+    const q = companySearch.toLowerCase();
+    if (q && !c.name?.toLowerCase().includes(q)) return false;
+    if (companyPlanFilter !== "الكل" && c.plan !== companyPlanFilter) return false;
+    return true;
+  });
 
   const sidebarItems = [
     { k: "overview",  ic: "home",  l: "نظرة عامة" },
@@ -272,11 +281,35 @@ export default function AdminDashboard() {
                 </div>
               </div>
             )}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
-              {companies.length === 0 && (
-                <div style={{ gridColumn: "1/-1", textAlign: "center", color: $.muted, padding: 40 }}>لا توجد شركات. أضف أول شركة!</div>
+            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+              <input
+                style={{ ...$.inp, maxWidth: 260, flex: 1 }}
+                placeholder="🔍 بحث باسم الشركة..."
+                value={companySearch}
+                onChange={(e) => setCompanySearch(e.target.value)}
+              />
+              <select style={{ ...$.inp, maxWidth: 160 }} value={companyPlanFilter} onChange={(e) => setCompanyPlanFilter(e.target.value)}>
+                <option>الكل</option>
+                <option>Basic</option>
+                <option>Professional</option>
+                <option>Enterprise</option>
+              </select>
+              {(companySearch || companyPlanFilter !== "الكل") && (
+                <button style={{ ...$.btn("s"), padding: "8px 14px", fontSize: 13 }} onClick={() => { setCompanySearch(""); setCompanyPlanFilter("الكل"); }}>
+                  مسح التصفية
+                </button>
               )}
-              {companies.map((c) => (
+              <span style={{ fontSize: 12, color: $.muted, alignSelf: "center", marginRight: "auto" }}>
+                {filteredCompanies.length} من {companies.length} شركة
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 14 }}>
+              {filteredCompanies.length === 0 && (
+                <div style={{ gridColumn: "1/-1", textAlign: "center", color: $.muted, padding: 40 }}>
+                  {companies.length === 0 ? "لا توجد شركات. أضف أول شركة!" : "لا توجد نتائج مطابقة"}
+                </div>
+              )}
+              {filteredCompanies.map((c) => (
                 <div key={c.id} style={{ background: $.surface2, borderRadius: 14, padding: 18, border: `1px solid ${$.border}`, position: "relative", overflow: "hidden" }}>
                   <div style={{ position: "absolute", top: 0, right: 0, left: 0, height: 3, background: `linear-gradient(90deg,${c.primaryColor || G},transparent)` }} />
                   <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
@@ -556,7 +589,7 @@ export default function AdminDashboard() {
               <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>👥 نشاط حسابات HR</h3>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
                 {[{ l: "إجمالي الحسابات", v: hrAccounts.length, c: G },
-                  { l: "حسابات نشطة", v: hrAccounts.filter((h) => h.isActive !== false).length, c: "#34d399" },
+                  { l: "حسابات نشطة", v: hrAccounts.filter((h) => h.is_active !== false).length, c: "#34d399" },
                   { l: "مديرو HR", v: hrAccounts.filter((h) => h.role === "hr_manager").length, c: "#818cf8" },
                 ].map((s) => (
                   <div key={s.l} style={{ background: $.surface2, borderRadius: 10, padding: 16, textAlign: "center" }}>
