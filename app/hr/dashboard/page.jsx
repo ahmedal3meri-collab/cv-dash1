@@ -140,8 +140,11 @@ export default function HRDashboard() {
     setSelApplicant(null);
   };
 
-  const exportToExcel = () => {
-    const data = applicants.map((a) => ({
+  const exportToExcel = (source) => {
+    const list = source === "selected" && selectedIds.length > 0
+      ? applicants.filter((a) => selectedIds.includes(a.id))
+      : source === "filtered" ? sortedFiltered : applicants;
+    const data = list.map((a) => ({
       الاسم: a.name, البريد: a.email, الهاتف: a.phone,
       الجنسية: a.nationality, الموقع: a.location,
       "المسمى الوظيفي": a.currentTitle, "سنوات الخبرة": a.experience,
@@ -352,20 +355,24 @@ export default function HRDashboard() {
             <h3 style={{ margin: "0 0 16px", fontSize: 15 }}>{t("fullInfo")}</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               {[
-                [t("nationality"), selApplicant.nationality],
-                [t("location"), selApplicant.location],
-                [t("phone"), selApplicant.phone],
-                [t("email"), selApplicant.email],
-                [t("jobTitle"), selApplicant.currentTitle],
-                [t("exp"), selApplicant.experience],
-                [t("lastEmployer"), selApplicant.lastEmployer],
-                [t("education"), selApplicant.education],
-                [t("university"), selApplicant.university],
-                [t("gpa"), selApplicant.gpa],
-              ].map(([l, v]) => (
+                [t("nationality"), selApplicant.nationality, null],
+                [t("location"), selApplicant.location, null],
+                [t("phone"), selApplicant.phone, selApplicant.phone ? `tel:${selApplicant.phone.replace(/\s/g, "")}` : null],
+                [t("email"), selApplicant.email, selApplicant.email ? `mailto:${selApplicant.email}` : null],
+                [t("jobTitle"), selApplicant.currentTitle, null],
+                [t("exp"), selApplicant.experience, null],
+                [t("lastEmployer"), selApplicant.lastEmployer, null],
+                [t("education"), selApplicant.education, null],
+                [t("university"), selApplicant.university, null],
+                [t("gpa"), selApplicant.gpa, null],
+              ].map(([l, v, href]) => (
                 <div key={l} style={{ background: $.surface2, borderRadius: 9, padding: 11 }}>
                   <div style={{ fontSize: 11, color: $.muted2, marginBottom: 3 }}>{l}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{v || "—"}</div>
+                  {href ? (
+                    <a href={href} style={{ fontSize: 13, fontWeight: 600, color: primaryColor, textDecoration: "none" }}>{v}</a>
+                  ) : (
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>{v || "—"}</div>
+                  )}
                 </div>
               ))}
             </div>
@@ -421,6 +428,12 @@ export default function HRDashboard() {
               <Icon n="cal" s={15} />{t("scheduleInterview")}
             </button>
           )}
+          {selApplicant.phone && (
+            <a href={`https://wa.me/${selApplicant.phone.replace(/[^0-9]/g, "")}`} target="_blank" rel="noreferrer"
+              style={{ ...$.btn("g"), padding: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13, textDecoration: "none" }}>
+              💬 واتساب
+            </a>
+          )}
           <button style={{ ...$.btn("d"), padding: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13 }} onClick={() => deleteApplicant(selApplicant.id)}>
             <Icon n="del" s={14} />{t("deleteApplicant")}
           </button>
@@ -458,8 +471,12 @@ export default function HRDashboard() {
             <button style={{ ...$.btn("g"), fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => setHTab("jobs")}>
               <Icon n="lnk" s={15} />{t("applyLink")}
             </button>
-            <button style={{ ...$.btn("p"), fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={exportToExcel}>
-              <Icon n="dl" s={15} />{t("exportExcel")}
+            <button style={{ ...$.btn("p"), fontSize: 13, display: "flex", alignItems: "center", gap: 6 }}
+              onClick={() => exportToExcel(selectedIds.length > 0 ? "selected" : "filtered")}
+              title={selectedIds.length > 0 ? `تصدير ${selectedIds.length} محدد` : `تصدير ${sortedFiltered.length} ظاهر`}
+            >
+              <Icon n="dl" s={15} />
+              {selectedIds.length > 0 ? `تصدير (${selectedIds.length})` : t("exportExcel")}
             </button>
           </div>
         </div>
