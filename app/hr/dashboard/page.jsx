@@ -68,14 +68,17 @@ export default function HRDashboard() {
 
   const [user, setUser] = useState(null);
   const [applicants, setApplicants] = useState([]);
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [jobForm, setJobForm] = useState({ title: "", description: "", requirements: "", location: "", jobType: "دوام كامل" });
+  const [showJobForm, setShowJobForm] = useState(false);
+  const [jobLoading, setJobLoading] = useState(false);
+  const [copiedJob, setCopiedJob] = useState(null);
 
   const [selApplicant, setSelApplicant] = useState(null);
   const [hTab, setHTab] = useState("applicants");
   const [search, setSearch] = useState("");
   const [fStatus, setFStatus] = useState("الكل");
-  const [fJob, setFJob] = useState("الكل");
-  const [fRating, setFRating] = useState(0);
   const [noteIn, setNoteIn] = useState("");
   const [showInterview, setShowInterview] = useState(false);
   const [interviewForm, setInterviewForm] = useState({ date: "", time: "", notes: "" });
@@ -91,10 +94,14 @@ export default function HRDashboard() {
         setUser(me);
         const companyId = me.companyId;
         const url = companyId ? `/api/applicants?companyId=${companyId}` : "/api/applicants";
-        return fetch(url).then((r) => r.json());
+        return Promise.all([
+          fetch(url).then((r) => r.json()),
+          fetch(`/api/jobs?companyId=${me.companyId}`).then((r) => r.json()),
+        ]);
       })
-      .then((data) => {
-        if (Array.isArray(data)) setApplicants(data);
+      .then(([apps, jbs]) => {
+        if (Array.isArray(apps)) setApplicants(apps);
+        if (Array.isArray(jbs)) setJobs(jbs);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -168,19 +175,57 @@ export default function HRDashboard() {
       a.nationality?.includes(search) ||
       a.currentTitle?.toLowerCase().includes(q);
     if (!matches) return false;
-    if (fStatus !== "الكل" && fStatus !== "All") {
-      const arF = arStatus[fStatus] || fStatus;
-      if (a.status !== arF) return false;
-    }
-    if (fJob !== "الكل" && a.jobId !== fJob) return false;
-    if (fRating > 0 && (a.rating || 0) < fRating) return false;
-    return true;
+    if (fStatus === "الكل" || fStatus === "All") return true;
+    const arF = arStatus[fStatus] || fStatus;
+    return a.status === arF;
   });
 
   const scheduledInterviews = applicants.filter((a) => a.interviewDate);
 
+  const addJob = async () => {
+    if (!jobForm.title) return;
+    setJobLoading(true);
+    try {
+      const res = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...jobForm, companyId }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setJobs((p) => [data, ...p]);
+        setShowJobForm(false);
+        setJobForm({ title: "", description: "", requirements: "", location: "", jobType: "دوام كامل" });
+      }
+    } finally {
+      setJobLoading(false);
+    }
+  };
+
+  const toggleJob = async (job) => {
+    await fetch(`/api/jobs/${job.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isActive: !job.isActive }),
+    });
+    setJobs((p) => p.map((j) => (j.id === job.id ? { ...j, isActive: !j.isActive } : j)));
+  };
+
+  const deleteJob = async (id) => {
+    await fetch(`/api/jobs/${id}`, { method: "DELETE" });
+    setJobs((p) => p.filter((j) => j.id !== id));
+  };
+
+  const copyJobLink = (token) => {
+    const link = `${window.location.origin}/applicant/apply/${token}`;
+    navigator.clipboard.writeText(link);
+    setCopiedJob(token);
+    setTimeout(() => setCopiedJob(null), 2000);
+  };
+
   const sidebarItems = [
     { k: "applicants", ic: "users", l: t("applicants") },
+    { k: "jobs", ic: "bag", l: t("jobs") },
     { k: "interviews", ic: "cal", l: t("interviews") },
     { k: "reports", ic: "chart", l: t("reports") },
   ];
@@ -208,6 +253,7 @@ export default function HRDashboard() {
         </div>
         <Badge s={selApplicant.status} />
         {saving && <span style={{ fontSize: 12, color: $.muted }}>💾 جاري الحفظ...</span>}
+        <button style={{ ...$.btn("g"), padding: "8px 14px", fontSize: 13 }} onClick={() => window.print()}>🖨️ طباعة / PDF</button>
       </div>
 
       {showInterview && (
@@ -377,36 +423,17 @@ export default function HRDashboard() {
 
         {hTab === "applicants" && (
           <>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
+              <div style={{ flex: 1, position: "relative" }}>
                 <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: $.muted }}><Icon n="srch" s={16} /></div>
                 <input style={{ ...$.inp, paddingRight: 38 }} placeholder={t("search")} value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
-              <select style={{ ...$.inp, width: 140 }} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
+              <select style={{ ...$.inp, width: 150 }} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
                 <option value="الكل">{t("all")}</option>
                 <option value="مراجعة">{t("review")}</option>
                 <option value="مقبول">{t("accepted")}</option>
                 <option value="مرفوض">{t("rejected")}</option>
               </select>
-              {jobs.length > 0 && (
-                <select style={{ ...$.inp, width: 160 }} value={fJob} onChange={(e) => setFJob(e.target.value)}>
-                  <option value="الكل">كل الوظائف</option>
-                  {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
-                </select>
-              )}
-              <select style={{ ...$.inp, width: 130 }} value={fRating} onChange={(e) => setFRating(Number(e.target.value))}>
-                <option value={0}>كل التقييمات</option>
-                {[5,4,3,2,1].map((r) => <option key={r} value={r}>{"★".repeat(r)} فأكثر</option>)}
-              </select>
-              {(fStatus !== "الكل" || fJob !== "الكل" || fRating > 0 || search) && (
-                <button style={{ ...$.btn("s"), padding: "8px 12px", fontSize: 12 }} onClick={() => { setFStatus("الكل"); setFJob("الكل"); setFRating(0); setSearch(""); }}>
-                  ✕ مسح
-                </button>
-              )}
-            </div>
-            {/* results count */}
-            <div style={{ fontSize: 12, color: $.muted, marginBottom: 10 }}>
-              {filtered.length} من {applicants.length} متقدم
             </div>
             <div style={$.card}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -448,6 +475,67 @@ export default function HRDashboard() {
               </table>
             </div>
           </>
+        )}
+
+        {hTab === "jobs" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <h3 style={{ margin: 0, fontSize: 18 }}>💼 {t("jobs")}</h3>
+              <button style={$.btn("p")} onClick={() => setShowJobForm(true)}>+ إضافة وظيفة</button>
+            </div>
+            {showJobForm && (
+              <div style={{ ...$.card, marginBottom: 18, border: `1px solid ${primaryColor}44` }}>
+                <h4 style={{ margin: "0 0 14px", color: primaryColor }}>وظيفة جديدة</h4>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <input style={$.inp} placeholder="عنوان الوظيفة *" value={jobForm.title} onChange={(e) => setJobForm((p) => ({ ...p, title: e.target.value }))} />
+                  <input style={$.inp} placeholder="الموقع (أبوظبي، دبي...)" value={jobForm.location} onChange={(e) => setJobForm((p) => ({ ...p, location: e.target.value }))} />
+                  <select style={$.inp} value={jobForm.jobType} onChange={(e) => setJobForm((p) => ({ ...p, jobType: e.target.value }))}>
+                    <option>دوام كامل</option><option>دوام جزئي</option><option>عن بُعد</option><option>عقد مؤقت</option>
+                  </select>
+                </div>
+                <textarea style={{ ...$.inp, marginTop: 10, minHeight: 70, resize: "vertical" }} placeholder="وصف الوظيفة (اختياري)" value={jobForm.description} onChange={(e) => setJobForm((p) => ({ ...p, description: e.target.value }))} />
+                <textarea style={{ ...$.inp, marginTop: 10, minHeight: 70, resize: "vertical" }} placeholder="متطلبات الوظيفة (اختياري)" value={jobForm.requirements} onChange={(e) => setJobForm((p) => ({ ...p, requirements: e.target.value }))} />
+                <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                  <button style={$.btn("p")} onClick={addJob} disabled={jobLoading || !jobForm.title}>{jobLoading ? "⏳ جاري الحفظ..." : "حفظ الوظيفة"}</button>
+                  <button style={$.btn("s")} onClick={() => setShowJobForm(false)}>إلغاء</button>
+                </div>
+              </div>
+            )}
+            {jobs.length === 0 ? (
+              <div style={{ ...$.card, textAlign: "center", padding: 48, color: $.muted }}>لا توجد وظائف. أضف أول وظيفة!</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {jobs.map((job) => (
+                  <div key={job.id} style={{ ...$.card, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", opacity: job.isActive ? 1 : 0.6 }}>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 700, fontSize: 15 }}>{job.title}</span>
+                        <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, fontWeight: 700, background: job.isActive ? "#05966922" : "#44444422", color: job.isActive ? "#34d399" : $.muted, border: `1px solid ${job.isActive ? "#05966944" : "#44444444"}` }}>
+                          {job.isActive ? "نشطة" : "متوقفة"}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 12, color: $.muted }}>
+                        {job.location && `📍 ${job.location} · `}{job.jobType}
+                        {" · "}{applicants.filter((a) => a.jobId === job.id).length} متقدم
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                      <button
+                        style={{ ...$.btn("g"), padding: "7px 14px", fontSize: 12, color: copiedJob === job.applyToken ? "#34d399" : primaryColor }}
+                        onClick={() => copyJobLink(job.applyToken)}
+                      >
+                        {copiedJob === job.applyToken ? "✓ تم النسخ!" : "🔗 رابط التقديم"}
+                      </button>
+                      <button style={{ ...$.btn("s"), padding: "7px 12px", fontSize: 12 }} onClick={() => toggleJob(job)}>
+                        {job.isActive ? "إيقاف" : "تفعيل"}
+                      </button>
+                      <button style={{ ...$.btn("d"), padding: "7px 12px", fontSize: 12 }} onClick={() => deleteJob(job.id)}>حذف</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {hTab === "interviews" && (

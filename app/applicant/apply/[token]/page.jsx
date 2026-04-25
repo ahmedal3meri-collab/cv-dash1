@@ -1,13 +1,12 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import Icon from "../../../../components/shared/Icon";
-import { MOCK_COMPANIES } from "../../../../lib/data";
 
 export default function ApplyPage({ params }) {
   const { token } = params;
-  const company = MOCK_COMPANIES.find((c) => String(c.id) === String(token)) || MOCK_COMPANIES[0];
-  const G = company.primaryColor;
 
+  const [job, setJob] = useState(null);
+  const [jobError, setJobError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", phone: "", file: null });
   const [prog, setProg] = useState(0);
   const [step, setStep] = useState("");
@@ -18,6 +17,18 @@ export default function ApplyPage({ params }) {
   const [agreed, setAgreed] = useState(false);
   const fileRef = useRef();
 
+  useEffect(() => {
+    fetch(`/api/jobs/token/${token}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) setJobError(data.error);
+        else setJob(data);
+      })
+      .catch(() => setJobError("تعذر تحميل بيانات الوظيفة"));
+  }, [token]);
+
+  const G = job?.primaryColor || "#C9A84C";
+
   const $ = {
     inp: { background: "#1a1a2a", border: "1px solid #2a2a3a", borderRadius: 10, padding: "10px 14px", color: "#e8e0d0", fontFamily: "inherit", fontSize: 14, outline: "none", width: "100%", boxSizing: "border-box" },
     btn: (v = "p") => ({
@@ -27,7 +38,7 @@ export default function ApplyPage({ params }) {
   };
 
   const upload = async () => {
-    if (!form.name || !form.email || !form.file || !agreed) return;
+    if (!form.name || !form.email || !form.file || !agreed || !job) return;
     setLoading(true);
     setErr("");
     setProg(10);
@@ -50,33 +61,29 @@ export default function ApplyPage({ params }) {
       setProg(70);
       setStep("🧠 استخراج البيانات...");
 
-      let parsed;
-      if (parseRes.ok) {
-        parsed = await parseRes.json();
-      } else {
-        parsed = {
-          name: form.name,
-          email: form.email,
-          phone: form.phone || "+971 50 000 0000",
-          nationality: "إماراتي",
-          location: "أبوظبي",
-          currentTitle: "محترف متخصص",
-          experience: "5+ سنوات",
-          lastEmployer: "شركة خليجية",
-          education: "بكالوريوس",
-          university: "جامعة الإمارات",
-          gpa: "3.5",
-          skills: ["تواصل", "إدارة", "تحليل بيانات"],
-          languages: ["عربي (لغة أم)", "إنجليزي (محترف)"],
-          certifications: ["PMP"],
-          aiSummary: "تم التحليل في الوضع التجريبي. سيتم مراجعة طلبك من قبل فريق الموارد البشرية.",
-        };
-      }
+      const parsed = parseRes.ok ? await parseRes.json() : {
+        name: form.name, email: form.email, phone: form.phone || "+971 50 000 0000",
+        nationality: "غير محدد", location: "غير محدد", currentTitle: "غير محدد",
+        experience: "غير محدد", lastEmployer: "غير محدد", education: "غير محدد",
+        university: "غير محدد", gpa: "غير محدد",
+        skills: [], languages: [], certifications: [],
+        aiSummary: "تم استلام الطلب وسيتم مراجعته من قبل فريق الموارد البشرية.",
+      };
+
+      setProg(85);
+      setStep("💾 حفظ البيانات...");
 
       await fetch("/api/applicants", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...parsed, companyId: company.id, status: "مراجعة", rating: 0 }),
+        body: JSON.stringify({
+          ...parsed,
+          phone: parsed.phone || form.phone,
+          companyId: job.companyId,
+          jobId: job.id !== "demo" ? job.id : null,
+          status: "مراجعة",
+          rating: 0,
+        }),
       });
 
       setProg(100);
@@ -91,6 +98,31 @@ export default function ApplyPage({ params }) {
     }
   };
 
+  // Loading state
+  if (!job && !jobError) {
+    return (
+      <div style={{ fontFamily: "'Cairo','Segoe UI',sans-serif", direction: "rtl", minHeight: "100vh", background: "#0a0a0f", color: "#e8e0d0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+          <div style={{ color: "#666" }}>جاري التحميل...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Invalid token
+  if (jobError) {
+    return (
+      <div style={{ fontFamily: "'Cairo','Segoe UI',sans-serif", direction: "rtl", minHeight: "100vh", background: "#0a0a0f", color: "#e8e0d0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", maxWidth: 380 }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🔗</div>
+          <h2 style={{ color: "#f87171", marginBottom: 10 }}>رابط غير صالح</h2>
+          <p style={{ color: "#555", fontSize: 14 }}>{jobError}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ fontFamily: "'Cairo','Segoe UI',sans-serif", direction: "rtl", minHeight: "100vh", background: "#0a0a0f", color: "#e8e0d0", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px 16px" }}>
       <div style={{ position: "fixed", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg,transparent,${G},transparent)` }} />
@@ -99,9 +131,17 @@ export default function ApplyPage({ params }) {
           <div style={{ width: 54, height: 54, background: `linear-gradient(135deg,${G},#8b6914)`, borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", boxShadow: `0 0 30px ${G}44` }}>
             <Icon n="bag" s={26} />
           </div>
-          <h2 style={{ fontSize: 20, fontWeight: 900, color: G, margin: 0 }}>{company.name}</h2>
-          <p style={{ color: "#555", margin: "6px 0 0", fontSize: 13 }}>التقديم على وظائف متاحة</p>
+          <h2 style={{ fontSize: 20, fontWeight: 900, color: G, margin: 0 }}>{job.companyName}</h2>
+          <p style={{ color: "#888", margin: "6px 0 0", fontSize: 14, fontWeight: 600 }}>{job.title}</p>
+          {job.location && <p style={{ color: "#555", margin: "4px 0 0", fontSize: 12 }}>📍 {job.location} · {job.jobType}</p>}
         </div>
+
+        {(job.description || job.requirements) && (
+          <div style={{ background: "#0d0d15", border: `1px solid ${G}22`, borderRadius: 12, padding: 16, marginBottom: 16, fontSize: 13, color: "#888", lineHeight: 1.7 }}>
+            {job.description && <p style={{ margin: "0 0 8px" }}>{job.description}</p>}
+            {job.requirements && <p style={{ margin: 0, borderTop: "1px solid #1e1e2e", paddingTop: 8 }}><strong style={{ color: G }}>المتطلبات:</strong> {job.requirements}</p>}
+          </div>
+        )}
 
         <div style={{ background: "#12121a", border: "1px solid #1e1e2e", borderRadius: 16, padding: 24 }}>
           {!done ? (
@@ -136,17 +176,12 @@ export default function ApplyPage({ params }) {
                     <input ref={fileRef} type="file" accept=".pdf" style={{ display: "none" }} onChange={(e) => setForm((p) => ({ ...p, file: e.target.files[0] }))} />
                   </div>
                 </div>
-
                 <div style={{ display: "flex", alignItems: "flex-start", gap: 10, padding: "12px", background: "#0d0d15", borderRadius: 10, border: "1px solid #1e1e2e" }}>
                   <input type="checkbox" id="agree" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} style={{ marginTop: 2, cursor: "pointer", accentColor: G }} />
                   <label htmlFor="agree" style={{ fontSize: 12, color: "#555", lineHeight: 1.6, cursor: "pointer" }}>
-                    أوافق على{" "}
-                    <a href="#" style={{ color: G, textDecoration: "none" }}>سياسة الخصوصية</a>{" "}
-                    وأُقرّ بأن بياناتي ستُعالج وفق{" "}
-                    <strong style={{ color: G }}>قانون PDPL 2023</strong> الإماراتي لأغراض التوظيف فقط.
+                    أوافق على <a href="#" style={{ color: G, textDecoration: "none" }}>سياسة الخصوصية</a> وأُقرّ بأن بياناتي ستُعالج وفق <strong style={{ color: G }}>قانون PDPL 2023</strong> الإماراتي لأغراض التوظيف فقط.
                   </label>
                 </div>
-
                 {loading && (
                   <div style={{ background: "#0d0d15", borderRadius: 12, padding: 16, border: `1px solid ${G}22` }}>
                     <div style={{ fontSize: 13, color: G, marginBottom: 10, fontWeight: 700 }}>{step}</div>
@@ -156,9 +191,7 @@ export default function ApplyPage({ params }) {
                     <div style={{ fontSize: 11, color: "#444", marginTop: 8 }}>لا تغلق الصفحة...</div>
                   </div>
                 )}
-                {err && (
-                  <div style={{ background: "#4c051933", borderRadius: 10, padding: 12, border: "1px solid #dc262644", color: "#f87171", fontSize: 13 }}>{err}</div>
-                )}
+                {err && <div style={{ background: "#4c051933", borderRadius: 10, padding: 12, border: "1px solid #dc262644", color: "#f87171", fontSize: 13 }}>{err}</div>}
                 <button
                   style={{ ...$.btn("p"), padding: 14, fontSize: 15, opacity: (!form.name || !form.email || !form.file || loading || !agreed) ? 0.4 : 1 }}
                   disabled={!form.name || !form.email || !form.file || loading || !agreed}
@@ -183,7 +216,6 @@ export default function ApplyPage({ params }) {
             </div>
           )}
         </div>
-
         <div style={{ textAlign: "center", marginTop: 12, fontSize: 11, color: "#2a2a3a" }}>
           🔒 محمي بموجب قانون حماية البيانات الشخصية PDPL 2023
         </div>
