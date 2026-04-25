@@ -31,6 +31,7 @@ const T = {
     email: "البريد", jobTitle: "المسمى", exp: "الخبرة",
     lastEmployer: "آخر جهة عمل", education: "التعليم", university: "المؤسسة", gpa: "GPA",
     loading: "جاري التحميل...", darkMode: "وضع داكن", lightMode: "وضع فاتح",
+    date: "التاريخ",
   },
   en: {
     portal: "HR DASHBOARD", applicants: "Applicants", jobs: "Jobs",
@@ -54,6 +55,7 @@ const T = {
     email: "Email", jobTitle: "Job Title", exp: "Experience",
     lastEmployer: "Last Employer", education: "Education", university: "University", gpa: "GPA",
     loading: "Loading...", darkMode: "Dark Mode", lightMode: "Light Mode",
+    date: "Date",
   },
 };
 
@@ -138,7 +140,11 @@ export default function HRDashboard() {
     setSaving(false);
   };
 
-  const deleteApplicant = async (id) => {
+  const deleteApplicant = async (id, name) => {
+    const msg = lang === "ar"
+      ? `هل تريد حذف بيانات "${name}" نهائياً؟\n\nهذا الإجراء لا يمكن التراجع عنه وفقاً لقانون PDPL 2023.`
+      : `Permanently delete all data for "${name}"?\n\nThis action cannot be undone (PDPL 2023).`;
+    if (!confirm(msg)) return;
     await fetch(`/api/applicants/${id}`, { method: "DELETE" }).catch(() => {});
     setApplicants((p) => p.filter((a) => a.id !== id));
     setSelApplicant(null);
@@ -477,7 +483,7 @@ export default function HRDashboard() {
               💬 واتساب
             </a>
           )}
-          <button style={{ ...$.btn("d"), padding: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13 }} onClick={() => deleteApplicant(selApplicant.id)}>
+          <button style={{ ...$.btn("d"), padding: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13 }} onClick={() => deleteApplicant(selApplicant.id, selApplicant.name)}>
             <Icon n="del" s={14} />{t("deleteApplicant")}
           </button>
         </div>
@@ -609,6 +615,7 @@ export default function HRDashboard() {
                     { l: t("languages"), k: null },
                     { l: t("rating"), k: "rating" },
                     { l: t("status"), k: null },
+                    { l: t("date"), k: "date" },
                     { l: "", k: null },
                   ].map(({ l, k }) => (
                     <th key={l} style={{ ...$.th, cursor: k ? "pointer" : "default", userSelect: "none" }} onClick={() => k && toggleSort(k)}>
@@ -619,7 +626,7 @@ export default function HRDashboard() {
                 </thead>
                 <tbody>
                   {sortedFiltered.length === 0 ? (
-                    <tr><td colSpan={8} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>{applicants.length === 0 ? "لا يوجد متقدمون بعد" : t("noResults")}</td></tr>
+                    <tr><td colSpan={9} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>{applicants.length === 0 ? "لا يوجد متقدمون بعد" : t("noResults")}</td></tr>
                   ) : pagedApplicants.map((a) => (
                     <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = selectedIds.includes(a.id) ? `${primaryColor}11` : "transparent"} style={{ cursor: "pointer", background: selectedIds.includes(a.id) ? `${primaryColor}11` : "transparent" }}>
                       <td style={{ ...$.td, width: 36 }}>
@@ -645,6 +652,7 @@ export default function HRDashboard() {
                       <td style={$.td}><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{(a.languages || []).slice(0, 2).map((l) => <span key={l} style={$.tg("#60a5fa")}>{l.split(" ")[0]}</span>)}</div></td>
                       <td style={$.td}><Stars v={a.rating} onChange={(r) => updateApplicant(a.id, { rating: r })} /></td>
                       <td style={$.td}><Badge s={a.status} /></td>
+                      <td style={{ ...$.td, color: $.muted, fontSize: 12 }}>{a.date || "—"}</td>
                       <td style={$.td}>
                         <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={() => setSelApplicant(a)}>
                           <Icon n="eye" s={14} />{t("view")}
