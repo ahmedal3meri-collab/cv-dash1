@@ -232,34 +232,88 @@ export default function AdminDashboard() {
                 </div>
               ))}
             </div>
-            <div style={$.card}>
-              <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>🏢 الشركات المسجلة</h3>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr>{["الشركة", "الخطة", "المتقدمون", "HR", "إجراءات"].map((h) => <th key={h} style={$.th}>{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {companies.length === 0 ? (
-                    <tr><td colSpan={5} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>لا توجد شركات بعد</td></tr>
-                  ) : companies.map((c) => (
-                    <tr key={c.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-                      <td style={$.td}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 34, height: 34, borderRadius: 9, background: `${c.primaryColor || G}33`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: c.primaryColor || G, fontSize: 15 }}>{(c.name || "?")[0]}</div>
-                          <span style={{ fontWeight: 600 }}>{c.name}</span>
-                        </div>
-                      </td>
-                      <td style={$.td}><span style={$.tg(c.plan === "Enterprise" ? G : c.plan === "Professional" ? "#60a5fa" : "#34d399")}>{c.plan}</span></td>
-                      <td style={$.td}><strong>{applicants.filter((a) => a.companyId === c.id || a.companyId === String(c.id)).length}</strong></td>
-                      <td style={$.td}>{hrAccounts.filter((h) => h.company_id === c.id || h.company_id === String(c.id)).length}</td>
-                      <td style={$.td}>
-                        <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12 }} onClick={() => router.push("/hr/login")}>HR Dashboard</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 18, marginBottom: 18 }}>
+              <div style={$.card}>
+                <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>🏢 الشركات المسجلة</h3>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>{["الشركة", "الخطة", "المتقدمون", "HR", "إجراءات"].map((h) => <th key={h} style={$.th}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {companies.length === 0 ? (
+                      <tr><td colSpan={5} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>لا توجد شركات بعد</td></tr>
+                    ) : companies.map((c) => (
+                      <tr key={c.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                        <td style={$.td}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <div style={{ width: 34, height: 34, borderRadius: 9, background: `${c.primaryColor || G}33`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: c.primaryColor || G, fontSize: 15 }}>{(c.name || "?")[0]}</div>
+                            <span style={{ fontWeight: 600 }}>{c.name}</span>
+                          </div>
+                        </td>
+                        <td style={$.td}><span style={$.tg(c.plan === "Enterprise" ? G : c.plan === "Professional" ? "#60a5fa" : "#34d399")}>{c.plan}</span></td>
+                        <td style={$.td}><strong>{applicants.filter((a) => a.companyId === c.id || a.companyId === String(c.id)).length}</strong></td>
+                        <td style={$.td}>{hrAccounts.filter((h) => h.company_id === c.id || h.company_id === String(c.id)).length}</td>
+                        <td style={$.td}>
+                          <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12 }} onClick={() => router.push("/hr/login")}>HR Dashboard</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={$.card}>
+                <h3 style={{ margin: "0 0 16px", fontSize: 16 }}>📈 حالة المتقدمين</h3>
+                {[{ l: "مراجعة", c: "#60a5fa" }, { l: "مقبول", c: "#34d399" }, { l: "مرفوض", c: "#f87171" }].map((s) => {
+                  const n = applicants.filter((a) => a.status === s.l).length;
+                  return (
+                    <div key={s.l} style={{ marginBottom: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13 }}>
+                        <span style={{ color: s.c }}>{s.l}</span>
+                        <span style={{ color: $.muted }}>{n} ({applicants.length ? Math.round(n / applicants.length * 100) : 0}%)</span>
+                      </div>
+                      <div style={{ height: 6, background: $.surface3, borderRadius: 3 }}>
+                        <div style={{ height: "100%", background: s.c, borderRadius: 3, width: `${applicants.length ? (n / applicants.length) * 100 : 0}%`, transition: "width 1s" }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${$.border}` }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 10, fontWeight: 700 }}>⚡ إجراءات سريعة</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <button style={{ ...$.btn("g"), padding: "8px 0", fontSize: 13, width: "100%" }} onClick={() => setATab("companies")}>+ إضافة شركة</button>
+                    <button style={{ ...$.btn("g"), padding: "8px 0", fontSize: 13, width: "100%" }} onClick={() => setATab("hr")}>+ إضافة HR</button>
+                    <button style={{ ...$.btn("g"), padding: "8px 0", fontSize: 13, width: "100%" }} onClick={() => setATab("analytics")}>📊 التحليلات</button>
+                  </div>
+                </div>
+              </div>
             </div>
+            {applicants.length > 0 && (
+              <div style={$.card}>
+                <h3 style={{ margin: "0 0 16px", fontSize: 16 }}>🕐 آخر المتقدمين</h3>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>{["الاسم", "الشركة", "الوظيفة", "الحالة", "التاريخ"].map((h) => <th key={h} style={$.th}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {applicants.slice(0, 8).map((a) => {
+                      const co = companies.find((c) => c.id === a.companyId || String(c.id) === String(a.companyId));
+                      const job = allJobs.find((j) => j.id === a.jobId);
+                      return (
+                        <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                          <td style={$.td}><span style={{ fontWeight: 600 }}>{a.name}</span></td>
+                          <td style={$.td}><span style={$.tg(co?.primaryColor || G)}>{co?.name || "—"}</span></td>
+                          <td style={{ ...$.td, color: $.muted, fontSize: 12 }}>{job?.title || "—"}</td>
+                          <td style={$.td}>
+                            <span style={$.tg(a.status === "مقبول" ? "#34d399" : a.status === "مرفوض" ? "#f87171" : "#60a5fa")}>{a.status}</span>
+                          </td>
+                          <td style={{ ...$.td, color: $.muted, fontSize: 12 }}>{a.date || "—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </>
         )}
 
