@@ -74,6 +74,8 @@ export default function HRDashboard() {
   const [hTab, setHTab] = useState("applicants");
   const [search, setSearch] = useState("");
   const [fStatus, setFStatus] = useState("الكل");
+  const [fJob, setFJob] = useState("الكل");
+  const [fRating, setFRating] = useState(0);
   const [noteIn, setNoteIn] = useState("");
   const [showInterview, setShowInterview] = useState(false);
   const [interviewForm, setInterviewForm] = useState({ date: "", time: "", notes: "" });
@@ -166,9 +168,13 @@ export default function HRDashboard() {
       a.nationality?.includes(search) ||
       a.currentTitle?.toLowerCase().includes(q);
     if (!matches) return false;
-    if (fStatus === "الكل" || fStatus === "All") return true;
-    const arF = arStatus[fStatus] || fStatus;
-    return a.status === arF;
+    if (fStatus !== "الكل" && fStatus !== "All") {
+      const arF = arStatus[fStatus] || fStatus;
+      if (a.status !== arF) return false;
+    }
+    if (fJob !== "الكل" && a.jobId !== fJob) return false;
+    if (fRating > 0 && (a.rating || 0) < fRating) return false;
+    return true;
   });
 
   const scheduledInterviews = applicants.filter((a) => a.interviewDate);
@@ -371,17 +377,36 @@ export default function HRDashboard() {
 
         {hTab === "applicants" && (
           <>
-            <div style={{ display: "flex", gap: 10, marginBottom: 16 }}>
-              <div style={{ flex: 1, position: "relative" }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
                 <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", color: $.muted }}><Icon n="srch" s={16} /></div>
                 <input style={{ ...$.inp, paddingRight: 38 }} placeholder={t("search")} value={search} onChange={(e) => setSearch(e.target.value)} />
               </div>
-              <select style={{ ...$.inp, width: 150 }} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
+              <select style={{ ...$.inp, width: 140 }} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
                 <option value="الكل">{t("all")}</option>
                 <option value="مراجعة">{t("review")}</option>
                 <option value="مقبول">{t("accepted")}</option>
                 <option value="مرفوض">{t("rejected")}</option>
               </select>
+              {jobs.length > 0 && (
+                <select style={{ ...$.inp, width: 160 }} value={fJob} onChange={(e) => setFJob(e.target.value)}>
+                  <option value="الكل">كل الوظائف</option>
+                  {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
+                </select>
+              )}
+              <select style={{ ...$.inp, width: 130 }} value={fRating} onChange={(e) => setFRating(Number(e.target.value))}>
+                <option value={0}>كل التقييمات</option>
+                {[5,4,3,2,1].map((r) => <option key={r} value={r}>{"★".repeat(r)} فأكثر</option>)}
+              </select>
+              {(fStatus !== "الكل" || fJob !== "الكل" || fRating > 0 || search) && (
+                <button style={{ ...$.btn("s"), padding: "8px 12px", fontSize: 12 }} onClick={() => { setFStatus("الكل"); setFJob("الكل"); setFRating(0); setSearch(""); }}>
+                  ✕ مسح
+                </button>
+              )}
+            </div>
+            {/* results count */}
+            <div style={{ fontSize: 12, color: $.muted, marginBottom: 10 }}>
+              {filtered.length} من {applicants.length} متقدم
             </div>
             <div style={$.card}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
