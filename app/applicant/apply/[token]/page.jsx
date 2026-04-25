@@ -1,11 +1,10 @@
 "use client";
 import { useState, useRef } from "react";
-import { use } from "react";
 import Icon from "../../../../components/shared/Icon";
 import { MOCK_COMPANIES } from "../../../../lib/data";
 
 export default function ApplyPage({ params }) {
-  const { token } = use(params);
+  const { token } = params;
   const company = MOCK_COMPANIES.find((c) => String(c.id) === String(token)) || MOCK_COMPANIES[0];
   const G = company.primaryColor;
 
