@@ -34,7 +34,7 @@ CREATE TABLE hr_accounts (
   name TEXT NOT NULL,
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'hr' CHECK (role IN ('hr', 'hr_manager')),
+  role TEXT NOT NULL DEFAULT 'hr' CHECK (role IN ('hr', 'hr_manager', 'company_admin')),
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   last_login TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
