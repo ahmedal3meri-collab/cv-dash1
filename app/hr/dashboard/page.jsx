@@ -729,36 +729,88 @@ export default function HRDashboard() {
           </div>
         )}
 
-        {hTab === "interviews" && (
-          <div style={$.card}>
-            <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>📅 {t("scheduledInterviews")}</h3>
-            {scheduledInterviews.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 40, color: $.muted, fontSize: 14 }}>{t("noInterviews")}</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {scheduledInterviews.map((a) => (
-                  <div key={a.id} style={{ background: $.surface2, borderRadius: 12, padding: 16, border: `1px solid ${primaryColor}22`, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                      <div style={{ width: 38, height: 38, borderRadius: 9, background: `${primaryColor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: primaryColor, fontSize: 16 }}>{a.name[0]}</div>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: 14 }}>{a.name}</div>
-                        <div style={{ fontSize: 12, color: $.muted }}>{a.currentTitle}</div>
-                      </div>
-                    </div>
-                    <div style={{ textAlign: "center" }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: primaryColor }}>{a.interviewDate}</div>
-                      <div style={{ fontSize: 12, color: $.muted }}>{a.interviewTime}</div>
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <Badge s={a.status} />
-                      <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12 }} onClick={() => setSelApplicant(a)}>{t("view")}</button>
-                    </div>
+        {hTab === "interviews" && (() => {
+          const today = new Date().toISOString().slice(0, 10);
+          const upcoming = scheduledInterviews
+            .filter((a) => a.interviewDate >= today)
+            .sort((a, b) => (a.interviewDate + a.interviewTime) > (b.interviewDate + b.interviewTime) ? 1 : -1);
+          const past = scheduledInterviews
+            .filter((a) => a.interviewDate < today)
+            .sort((a, b) => (a.interviewDate + a.interviewTime) > (b.interviewDate + b.interviewTime) ? -1 : 1);
+
+          const daysLeft = (dateStr) => {
+            const diff = Math.ceil((new Date(dateStr) - new Date(today)) / 86400000);
+            if (diff === 0) return { l: lang === "ar" ? "اليوم" : "Today", c: "#f59e0b" };
+            if (diff === 1) return { l: lang === "ar" ? "غداً" : "Tomorrow", c: "#34d399" };
+            if (diff > 0) return { l: `+${diff} ${lang === "ar" ? "يوم" : "days"}`, c: primaryColor };
+            return { l: lang === "ar" ? "انتهت" : "Past", c: "#555" };
+          };
+
+          const InterviewCard = ({ a, dimmed }) => {
+            const dl = daysLeft(a.interviewDate);
+            return (
+              <div style={{ background: $.surface2, borderRadius: 12, padding: 16, border: `1px solid ${dimmed ? $.border : primaryColor + "33"}`, display: "flex", alignItems: "center", justifyContent: "space-between", opacity: dimmed ? 0.6 : 1 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 9, background: `${primaryColor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: primaryColor, fontSize: 16 }}>{(a.name || "؟")[0]}</div>
+                  <div>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{a.name}</div>
+                    <div style={{ fontSize: 12, color: $.muted }}>{a.currentTitle}</div>
+                  </div>
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: primaryColor }}>{a.interviewDate}</div>
+                  <div style={{ fontSize: 12, color: $.muted }}>{a.interviewTime}</div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 900, color: dl.c, background: `${dl.c}18`, border: `1px solid ${dl.c}33`, borderRadius: 20, padding: "2px 10px" }}>{dl.l}</span>
+                  <Badge s={a.status} />
+                  <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12 }} onClick={() => setSelApplicant(a)}>{t("view")}</button>
+                </div>
+              </div>
+            );
+          };
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
+                {[
+                  { l: lang === "ar" ? "إجمالي المقابلات" : "Total", v: scheduledInterviews.length, c: primaryColor },
+                  { l: lang === "ar" ? "قادمة" : "Upcoming", v: upcoming.length, c: "#34d399" },
+                  { l: lang === "ar" ? "اليوم" : "Today", v: scheduledInterviews.filter((a) => a.interviewDate === today).length, c: "#f59e0b" },
+                ].map((s) => (
+                  <div key={s.l} style={$.st(s.c)}>
+                    <div style={{ fontSize: 28, fontWeight: 900, color: s.c }}>{s.v}</div>
+                    <div style={{ fontSize: 12, color: $.muted, marginTop: 5 }}>{s.l}</div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
-        )}
+
+              {upcoming.length > 0 && (
+                <div style={$.card}>
+                  <h3 style={{ margin: "0 0 14px", fontSize: 16 }}>📅 {lang === "ar" ? "المقابلات القادمة" : "Upcoming Interviews"} ({upcoming.length})</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {upcoming.map((a) => <InterviewCard key={a.id} a={a} dimmed={false} />)}
+                  </div>
+                </div>
+              )}
+
+              {past.length > 0 && (
+                <div style={$.card}>
+                  <h3 style={{ margin: "0 0 14px", fontSize: 16, color: $.muted }}>🕐 {lang === "ar" ? "مقابلات سابقة" : "Past Interviews"} ({past.length})</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {past.map((a) => <InterviewCard key={a.id} a={a} dimmed={true} />)}
+                  </div>
+                </div>
+              )}
+
+              {scheduledInterviews.length === 0 && (
+                <div style={{ ...$.card, textAlign: "center", padding: 48, color: $.muted }}>
+                  {t("noInterviews")}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {hTab === "reports" && (() => {
           const ratedApps = applicants.filter((a) => a.rating > 0);
