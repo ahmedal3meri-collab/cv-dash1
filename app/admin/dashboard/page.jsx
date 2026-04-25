@@ -22,6 +22,7 @@ export default function AdminDashboard() {
   const [showAdd, setShowAdd] = useState(false);
   const [newCo, setNewCo] = useState({ name: "", plan: "Basic" });
   const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState("");
 
   // HR account form state
   const [showAddHR, setShowAddHR] = useState(false);
@@ -51,16 +52,23 @@ export default function AdminDashboard() {
   const addCompany = async () => {
     if (!newCo.name) return;
     setAddLoading(true);
-    const res = await fetch("/api/companies", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: newCo.name, plan: newCo.plan, primaryColor: G }),
-    });
-    const data = await res.json();
-    if (res.ok) {
-      setCompanies((p) => [data, ...p]);
-      setShowAdd(false);
-      setNewCo({ name: "", plan: "Basic" });
+    setAddError("");
+    try {
+      const res = await fetch("/api/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newCo.name, plan: newCo.plan, primaryColor: G }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setCompanies((p) => [data, ...p]);
+        setShowAdd(false);
+        setNewCo({ name: "", plan: "Basic" });
+      } else {
+        setAddError(data.error || "فشل في إضافة الشركة");
+      }
+    } catch {
+      setAddError("خطأ في الاتصال بالخادم");
     }
     setAddLoading(false);
   };
@@ -228,9 +236,14 @@ export default function AdminDashboard() {
                     <option>Basic</option><option>Professional</option><option>Enterprise</option>
                   </select>
                 </div>
+                {addError && (
+                  <div style={{ marginTop: 10, padding: "8px 12px", background: "#4c051933", border: "1px solid #dc262644", borderRadius: 8, color: "#f87171", fontSize: 13 }}>
+                    {addError}
+                  </div>
+                )}
                 <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
                   <button style={$.btn("p")} onClick={addCompany} disabled={addLoading}>{addLoading ? "⏳ جاري الحفظ..." : "حفظ"}</button>
-                  <button style={$.btn("s")} onClick={() => setShowAdd(false)}>إلغاء</button>
+                  <button style={$.btn("s")} onClick={() => { setShowAdd(false); setAddError(""); }}>إلغاء</button>
                 </div>
               </div>
             )}

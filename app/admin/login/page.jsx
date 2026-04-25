@@ -7,7 +7,7 @@ const G = "#C9A84C";
 
 export default function AdminLogin() {
   const router = useRouter();
-  const [email, setEmail] = useState("superadmin@smartcv.ae");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -70,13 +70,6 @@ export default function AdminLogin() {
               {loading ? "⏳ جاري التحقق..." : "🔐 دخول"}
             </button>
           </form>
-          <div style={{ marginTop: 16, padding: "12px 14px", background: "#0d0d15", borderRadius: 10, border: `1px solid ${G}22` }}>
-            <div style={{ fontSize: 11, color: "#555", marginBottom: 6, fontWeight: 700 }}>بيانات التجربة:</div>
-            <div style={{ fontSize: 11, color: "#444", fontFamily: "monospace" }}>
-              البريد: superadmin@smartcv.ae<br />
-              كلمة المرور: Admin@2024!
-            </div>
-          </div>
           <p style={{ textAlign: "center", fontSize: 11, color: "#2a2a3a", marginTop: 14 }}>🔒 محمي بـ JWT · PDPL 2023</p>
         </div>
         <div style={{ textAlign: "center", marginTop: 16 }}>
