@@ -87,6 +87,8 @@ export default function HRDashboard() {
   const [saving, setSaving] = useState(false);
   const [fJob, setFJob] = useState("all");
   const [fRating, setFRating] = useState(0);
+  const [compareIds, setCompareIds] = useState([]);
+  const [showCompare, setShowCompare] = useState(false);
 
   useEffect(() => {
     fetch("/api/me")
@@ -228,6 +230,14 @@ export default function HRDashboard() {
     navigator.clipboard.writeText(link);
     setCopiedJob(token);
     setTimeout(() => setCopiedJob(null), 2000);
+  };
+
+  const toggleCompare = (id) => {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 2) return [prev[1], id];
+      return [...prev, id];
+    });
   };
 
   const sidebarItems = [
@@ -461,14 +471,23 @@ export default function HRDashboard() {
                 </button>
               )}
             </div>
-            <div style={{ fontSize: 12, color: $.muted, marginBottom: 10 }}>
-              {filtered.length} من {applicants.length} متقدم
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={{ fontSize: 12, color: $.muted }}>{filtered.length} من {applicants.length} متقدم</div>
+              {compareIds.length > 0 && (
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: primaryColor }}>{compareIds.length}/2 محدد للمقارنة</span>
+                  {compareIds.length === 2 && (
+                    <button style={{ ...$.btn("p"), padding: "6px 14px", fontSize: 12 }} onClick={() => setShowCompare(true)}>⚖️ مقارنة</button>
+                  )}
+                  <button style={{ ...$.btn("s"), padding: "6px 10px", fontSize: 12 }} onClick={() => setCompareIds([])}>✕</button>
+                </div>
+              )}
             </div>
             <div style={$.card}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>
-                    {[t("name"), t("title"), t("experience"), t("languages"), t("rating"), t("status"), ""].map((h) => (
+                    {["", t("name"), t("title"), t("experience"), t("languages"), t("rating"), t("status"), ""].map((h) => (
                       <th key={h} style={$.th}>{h}</th>
                     ))}
                   </tr>
@@ -477,7 +496,10 @@ export default function HRDashboard() {
                   {filtered.length === 0 ? (
                     <tr><td colSpan={7} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>{applicants.length === 0 ? "لا يوجد متقدمون بعد" : t("noResults")}</td></tr>
                   ) : filtered.map((a) => (
-                    <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"} style={{ cursor: "pointer" }}>
+                    <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = compareIds.includes(a.id) ? `${primaryColor}11` : "transparent"} style={{ cursor: "pointer", background: compareIds.includes(a.id) ? `${primaryColor}11` : "transparent" }}>
+                      <td style={{ ...$.td, width: 36 }}>
+                        <input type="checkbox" checked={compareIds.includes(a.id)} onChange={() => toggleCompare(a.id)} onClick={(e) => e.stopPropagation()} style={{ cursor: "pointer", accentColor: primaryColor }} />
+                      </td>
                       <td style={$.td}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{ width: 35, height: 35, borderRadius: 9, background: `${primaryColor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: primaryColor, fontSize: 15 }}>{(a.name || "؟")[0]}</div>
@@ -632,6 +654,76 @@ export default function HRDashboard() {
             </div>
           </div>
         )}
+
+        {showCompare && compareIds.length === 2 && (() => {
+          const [a1, a2] = compareIds.map((id) => applicants.find((a) => a.id === id)).filter(Boolean);
+          if (!a1 || !a2) return null;
+          const fields = [
+            ["الجنسية", "nationality"], ["الموقع", "location"], ["المسمى", "currentTitle"],
+            ["الخبرة", "experience"], ["آخر جهة عمل", "lastEmployer"],
+            ["التعليم", "education"], ["الجامعة", "university"], ["GPA", "gpa"],
+          ];
+          return (
+            <div style={{ position: "fixed", inset: 0, background: "#000000cc", zIndex: 250, display: "flex", alignItems: "flex-start", justifyContent: "center", overflow: "auto", padding: "32px 16px" }}>
+              <div style={{ background: $.surface, border: `1px solid ${$.border}`, borderRadius: 18, width: "100%", maxWidth: 820, boxShadow: "0 40px 80px #000000cc" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: `1px solid ${$.border}` }}>
+                  <h3 style={{ margin: 0, fontSize: 17, color: primaryColor }}>⚖️ مقارنة المتقدمين</h3>
+                  <button style={{ background: "none", border: "none", color: $.muted, cursor: "pointer", fontSize: 22 }} onClick={() => setShowCompare(false)}>✕</button>
+                </div>
+                <div style={{ padding: 24 }}>
+                  {/* Header row */}
+                  <div style={{ display: "grid", gridTemplateColumns: "160px 1fr 1fr", gap: 12, marginBottom: 16 }}>
+                    <div />
+                    {[a1, a2].map((a) => (
+                      <div key={a.id} style={{ background: `${primaryColor}11`, border: `1px solid ${primaryColor}33`, borderRadius: 12, padding: "14px 16px", textAlign: "center" }}>
+                        <div style={{ width: 44, height: 44, borderRadius: 11, background: `${primaryColor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: primaryColor, fontSize: 18, margin: "0 auto 8px" }}>{a.name[0]}</div>
+                        <div style={{ fontWeight: 800, fontSize: 15 }}>{a.name}</div>
+                        <div style={{ fontSize: 12, color: $.muted, marginTop: 3 }}>{a.currentTitle}</div>
+                        <div style={{ marginTop: 8 }}><Stars v={a.rating} sz={14} /></div>
+                        <div style={{ marginTop: 6 }}><Badge s={a.status} /></div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Field rows */}
+                  {fields.map(([label, key]) => (
+                    <div key={key} style={{ display: "grid", gridTemplateColumns: "160px 1fr 1fr", gap: 12, marginBottom: 8 }}>
+                      <div style={{ display: "flex", alignItems: "center", fontSize: 12, color: $.muted, fontWeight: 700, paddingRight: 4 }}>{label}</div>
+                      {[a1, a2].map((a) => (
+                        <div key={a.id} style={{ background: $.surface2, borderRadius: 8, padding: "9px 12px", fontSize: 13, color: a[key] ? $.text : $.muted2 }}>
+                          {a[key] || "—"}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                  {/* Skills */}
+                  {["skills", "languages", "certifications"].map((key) => {
+                    const labels = { skills: "المهارات", languages: "اللغات", certifications: "الشهادات" };
+                    const colors = { skills: "#60a5fa", languages: "#34d399", certifications: primaryColor };
+                    return (
+                      <div key={key} style={{ display: "grid", gridTemplateColumns: "160px 1fr 1fr", gap: 12, marginBottom: 8 }}>
+                        <div style={{ display: "flex", alignItems: "flex-start", fontSize: 12, color: $.muted, fontWeight: 700, paddingRight: 4, paddingTop: 8 }}>{labels[key]}</div>
+                        {[a1, a2].map((a) => (
+                          <div key={a.id} style={{ background: $.surface2, borderRadius: 8, padding: "9px 12px", display: "flex", flexWrap: "wrap", gap: 5 }}>
+                            {(a[key] || []).length === 0 ? <span style={{ color: $.muted2, fontSize: 12 }}>—</span> : (a[key] || []).map((i) => <span key={i} style={{ fontSize: 11, padding: "2px 7px", borderRadius: 10, background: `${colors[key]}22`, color: colors[key], border: `1px solid ${colors[key]}33` }}>{i}</span>)}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                  {/* Actions */}
+                  <div style={{ display: "grid", gridTemplateColumns: "160px 1fr 1fr", gap: 12, marginTop: 16 }}>
+                    <div />
+                    {[a1, a2].map((a) => (
+                      <button key={a.id} style={{ ...$.btn("p"), padding: "10px 0", fontSize: 13 }} onClick={() => { setShowCompare(false); setSelApplicant(a); }}>
+                        عرض الملف الكامل
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {showSettings && (
           <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
