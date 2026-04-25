@@ -179,6 +179,22 @@ export default function HRDashboard() {
     setNoteIn("");
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshApplicants = async () => {
+    if (!companyId || refreshing) return;
+    setRefreshing(true);
+    try {
+      const [apps, jbs] = await Promise.all([
+        fetch(`/api/applicants?companyId=${companyId}`).then((r) => r.json()),
+        fetch(`/api/jobs?companyId=${companyId}`).then((r) => r.json()),
+      ]);
+      if (Array.isArray(apps)) setApplicants(apps);
+      if (Array.isArray(jbs)) setJobs(jbs);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const changeOwnPassword = async () => {
     setPwMsg({ text: "", ok: false });
     if (!pwForm.next || pwForm.next.length < 8) { setPwMsg({ text: "كلمة المرور الجديدة 8 أحرف على الأقل", ok: false }); return; }
@@ -204,6 +220,7 @@ export default function HRDashboard() {
     const q = search.toLowerCase();
     const matches =
       a.name?.toLowerCase().includes(q) ||
+      a.email?.toLowerCase().includes(q) ||
       a.skills?.some((s) => s.toLowerCase().includes(q)) ||
       a.nationality?.includes(search) ||
       a.currentTitle?.toLowerCase().includes(q);
@@ -493,6 +510,9 @@ export default function HRDashboard() {
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setDark((d) => !d)} style={{ ...$.btn("s"), padding: "8px 14px", fontSize: 13 }}>
               {dark ? "☀️" : "🌙"}
+            </button>
+            <button onClick={refreshApplicants} disabled={refreshing} style={{ ...$.btn("s"), padding: "8px 14px", fontSize: 13 }} title="تحديث البيانات">
+              {refreshing ? "⏳" : "🔄"}
             </button>
             <button style={{ ...$.btn("g"), fontSize: 13, display: "flex", alignItems: "center", gap: 6 }} onClick={() => setHTab("jobs")}>
               <Icon n="lnk" s={15} />{t("applyLink")}
