@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin, isSupabaseConfigured } from "../../../../lib/supabase-server";
-import { MOCK_APPLICANTS } from "../../../../lib/data";
+import { getSupabaseAdmin, isSupabaseConfigured } from "../../../lib/supabase-server";
+import { MOCK_APPLICANTS } from "../../../lib/data";
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
