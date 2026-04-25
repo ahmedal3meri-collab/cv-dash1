@@ -22,14 +22,22 @@ export async function GET() {
     return NextResponse.json(MOCK_COMPANIES);
   }
 
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("companies")
-    .select("*")
-    .order("created_at", { ascending: false });
+  try {
+    const supabase = getSupabaseAdmin();
+    const { data, error } = await supabase
+      .from("companies")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json((data || []).map(mapCompany));
+    if (error) {
+      console.error("Supabase GET companies error:", error.message, error.code);
+      return NextResponse.json({ error: error.message, code: error.code }, { status: 500 });
+    }
+    return NextResponse.json((data || []).map(mapCompany));
+  } catch (err) {
+    console.error("Companies GET exception:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
 
 export async function POST(request) {
@@ -62,9 +70,13 @@ export async function POST(request) {
       .select()
       .single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error("Supabase POST companies error:", error.message, error.code);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json(mapCompany(data), { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "خطأ داخلي" }, { status: 500 });
+  } catch (err) {
+    console.error("Companies POST exception:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
