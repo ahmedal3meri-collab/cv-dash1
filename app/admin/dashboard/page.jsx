@@ -1,10 +1,10 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Icon from "@/components/shared/Icon";
-import Sidebar from "@/components/shared/Sidebar";
-import { MOCK_COMPANIES, MOCK_APPLICANTS } from "@/lib/data";
-import { createTheme } from "@/lib/theme";
+import Icon from "../../../components/shared/Icon";
+import Sidebar from "../../../components/shared/Sidebar";
+import { MOCK_COMPANIES, MOCK_APPLICANTS } from "../../../lib/data";
+import { createTheme } from "../../../lib/theme";
 
 const PRIMARY = "#C9A84C";
 

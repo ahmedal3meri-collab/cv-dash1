@@ -1,8 +1,8 @@
 "use client";
 import { useState, useRef } from "react";
 import { use } from "react";
-import Icon from "@/components/shared/Icon";
-import { MOCK_COMPANIES } from "@/lib/data";
+import Icon from "../../../../components/shared/Icon";
+import { MOCK_COMPANIES } from "../../../../lib/data";
 
 export default function ApplyPage({ params }) {
   const { token } = use(params);

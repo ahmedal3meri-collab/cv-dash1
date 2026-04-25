@@ -2,12 +2,12 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
-import Icon from "@/components/shared/Icon";
-import Sidebar from "@/components/shared/Sidebar";
-import Stars from "@/components/shared/Stars";
-import Badge from "@/components/shared/Badge";
-import { MOCK_APPLICANTS } from "@/lib/data";
-import { createTheme } from "@/lib/theme";
+import Icon from "../../../components/shared/Icon";
+import Sidebar from "../../../components/shared/Sidebar";
+import Stars from "../../../components/shared/Stars";
+import Badge from "../../../components/shared/Badge";
+import { MOCK_APPLICANTS } from "../../../lib/data";
+import { createTheme } from "../../../lib/theme";
 
 const PRIMARY = "#C9A84C";
 const COMPANY_NAME = "هيئة أبوظبي للصحة";
