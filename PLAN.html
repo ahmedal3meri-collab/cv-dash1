@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>خطة Smart CV Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0f; color: #e8e0d0; direction: rtl; }
+  .hero { background: linear-gradient(135deg, #C9A84C22, #0a0a0f); border-bottom: 1px solid #C9A84C33; padding: 48px 40px 36px; text-align: center; }
+  .hero h1 { font-size: 36px; font-weight: 900; background: linear-gradient(135deg, #C9A84C, #ffe580); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
+  .hero p { color: #888; font-size: 15px; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px; }
+  h2 { font-size: 22px; font-weight: 800; color: #C9A84C; margin: 40px 0 18px; display: flex; align-items: center; gap: 10px; }
+  h2::before { content: ''; display: block; width: 4px; height: 22px; background: #C9A84C; border-radius: 4px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .card { background: #12121a; border: 1px solid #1e1e2e; border-radius: 14px; padding: 20px; }
+  .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: #e8e0d0; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; margin: 3px 2px; }
+  .tag.done { background: #05966915; color: #34d399; border: 1px solid #05966933; }
+  .tag.pending { background: #C9A84C15; color: #C9A84C; border: 1px solid #C9A84C33; }
+  .tag.future { background: #6366f115; color: #818cf8; border: 1px solid #6366f133; }
+  .tag.blocked { background: #dc262615; color: #f87171; border: 1px solid #dc262633; }
+  ul { list-style: none; padding: 0; }
+  ul li { padding: 8px 0; border-bottom: 1px solid #1e1e2e; font-size: 14px; display: flex; align-items: flex-start; gap: 10px; }
+  ul li:last-child { border-bottom: none; }
+  .ico { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .phase { background: #12121a; border: 1px solid #1e1e2e; border-radius: 14px; margin-bottom: 14px; overflow: hidden; }
+  .phase-header { padding: 16px 20px; display: flex; align-items: center; gap: 14px; background: #0d0d15; }
+  .phase-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-Content: center; font-weight: 900; font-size: 14px; flex-shrink: 0; }
+  .phase-body { padding: 16px 20px; }
+  .phase-body li { font-size: 13px; color: #bbb; }
+  .status-bar { display: flex; align-items: center; gap: 8px; background: #0d0d15; border: 1px solid #1e1e2e; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot.green { background: #34d399; box-shadow: 0 0 8px #34d39966; }
+  .dot.yellow { background: #C9A84C; box-shadow: 0 0 8px #C9A84C66; }
+  .dot.red { background: #f87171; box-shadow: 0 0 8px #f8717166; }
+  .dot.blue { background: #818cf8; box-shadow: 0 0 8px #818cf866; }
+  .progress { height: 8px; background: #1e1e2e; border-radius: 10px; margin: 20px 0 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, #C9A84C, #ffe580); border-radius: 10px; transition: width 1s; }
+  .note { background: #C9A84C11; border: 1px solid #C9A84C33; border-radius: 10px; padding: 14px 16px; margin: 10px 0; font-size: 13px; color: #C9A84C; }
+  .code { font-family: monospace; background: #0d0d15; padding: 2px 8px; border-radius: 6px; font-size: 12px; color: #C9A84C; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: right; padding: 10px 14px; background: #0d0d15; color: #888; font-weight: 600; border-bottom: 1px solid #1e1e2e; }
+  td { padding: 10px 14px; border-bottom: 1px solid #111; }
+  .sep { border: none; border-top: 1px solid #1e1e2e; margin: 40px 0; }
+  footer { text-align: center; padding: 30px; color: #333; font-size: 12px; border-top: 1px solid #1e1e2e; margin-top: 40px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div style="font-size:48px;margin-bottom:16px">🛡️</div>
+  <h1>Smart CV Dashboard</h1>
+  <p>خطة التطوير الكاملة — ما تم + ما تبقى + المستقبل</p>
+  <p style="margin-top:8px;font-size:12px;color:#444">آخر تحديث: أبريل 2026</p>
+</div>
+
+<div class="container">
+
+  <!-- نسبة الإنجاز -->
+  <h2>نسبة الإنجاز الكلية</h2>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+      <span style="font-size:14px;color:#888">المنجز حتى الآن</span>
+      <span style="font-size:22px;font-weight:900;color:#C9A84C">65%</span>
+    </div>
+    <div class="progress"><div class="progress-fill" style="width:65%"></div></div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px;text-align:center">
+      <div><div style="font-size:20px;font-weight:900;color:#34d399">✓ منجز</div><div style="font-size:11px;color:#666">البنية + Auth + UI</div></div>
+      <div><div style="font-size:20px;font-weight:900;color:#f87171">⚠ مشكلة</div><div style="font-size:11px;color:#666">Vercel لا يُنشر</div></div>
+      <div><div style="font-size:20px;font-weight:900;color:#C9A84C">◐ جزئي</div><div style="font-size:11px;color:#666">Supabase متصل</div></div>
+      <div><div style="font-size:20px;font-weight:900;color:#818cf8">○ قادم</div><div style="font-size:11px;color:#666">ميزات متقدمة</div></div>
+    </div>
+  </div>
+
+  <!-- ما تم بناؤه -->
+  <h2>✅ ما تم بناؤه كاملاً</h2>
+  <div class="grid">
+
+    <div class="card">
+      <h3>🏗️ البنية التقنية</h3>
+      <ul>
+        <li><span class="ico">✅</span> Next.js 14 App Router — بنية احترافية كاملة</li>
+        <li><span class="ico">✅</span> 3 بوابات منفصلة (Admin / HR / Company Admin)</li>
+        <li><span class="ico">✅</span> JWT في httpOnly cookies — آمن بالكامل</li>
+        <li><span class="ico">✅</span> Middleware يحمي جميع المسارات</li>
+        <li><span class="ico">✅</span> Supabase Schema + RLS policies</li>
+        <li><span class="ico">✅</span> Claude AI API مخفي في backend</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🔐 نظام الصلاحيات (3 مستويات)</h3>
+      <ul>
+        <li><span class="ico">✅</span> <strong>Super Admin</strong> — يرى ويتحكم في كل شيء</li>
+        <li><span class="ico">✅</span> <strong>Company Admin</strong> — يدير HR شركته فقط</li>
+        <li><span class="ico">✅</span> <strong>HR / HR Manager</strong> — يدير المتقدمين</li>
+        <li><span class="ico">✅</span> تسجيل دخول منفصل لكل بوابة</li>
+        <li><span class="ico">✅</span> bcryptjs لتشفير كلمات المرور</li>
+        <li><span class="ico">✅</span> Super Admin فقط يضيف Company Admin</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>👑 بوابة Super Admin</h3>
+      <ul>
+        <li><span class="ico">✅</span> إضافة / حذف الشركات</li>
+        <li><span class="ico">✅</span> اختيار الخطة (Basic / Pro / Enterprise)</li>
+        <li><span class="ico">✅</span> إدارة حسابات HR (إضافة / حذف / تعطيل)</li>
+        <li><span class="ico">✅</span> إضافة Company Admin لأي شركة</li>
+        <li><span class="ico">✅</span> تبديل داكن / فاتح</li>
+        <li><span class="ico">✅</span> إحصائيات عامة للنظام</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🏢 بوابة Company Admin</h3>
+      <ul>
+        <li><span class="ico">✅</span> صفحة دخول مستقلة <span class="code">/company-admin/login</span></li>
+        <li><span class="ico">✅</span> إضافة / إزالة موظفي HR</li>
+        <li><span class="ico">✅</span> تغيير الأدوار (hr / hr_manager)</li>
+        <li><span class="ico">✅</span> تفعيل / تعطيل الحسابات</li>
+        <li><span class="ico">✅</span> إعادة تعيين كلمة المرور</li>
+        <li><span class="ico">✅</span> عرض سجل النشاط (Audit Log)</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>👥 بوابة HR</h3>
+      <ul>
+        <li><span class="ico">✅</span> عرض المتقدمين مع فلتر وبحث</li>
+        <li><span class="ico">✅</span> تغيير الحالة (مراجعة / مقبول / مرفوض)</li>
+        <li><span class="ico">✅</span> تقييم النجوم (1-5)</li>
+        <li><span class="ico">✅</span> جدولة المقابلات (تاريخ + وقت)</li>
+        <li><span class="ico">✅</span> ملاحظات على كل متقدم</li>
+        <li><span class="ico">✅</span> نسخ رابط التقديم</li>
+        <li><span class="ico">✅</span> لوحة إعدادات (مظهر / لغة)</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>📄 بوابة التقديم للمتقدمين</h3>
+      <ul>
+        <li><span class="ico">✅</span> رابط تقديم مؤمن بـ token فريد</li>
+        <li><span class="ico">✅</span> رفع CV (PDF)</li>
+        <li><span class="ico">✅</span> استخراج البيانات بـ Claude AI</li>
+        <li><span class="ico">✅</span> ملخص ذكاء اصطناعي للمتقدم</li>
+        <li><span class="ico">✅</span> حفظ في Supabase مباشرة</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🗄️ قاعدة البيانات</h3>
+      <ul>
+        <li><span class="ico">✅</span> 6 جداول: companies / hr_accounts / jobs / applicants / evaluations / audit_log</li>
+        <li><span class="ico">✅</span> RLS policies — عزل كامل بين الشركات</li>
+        <li><span class="ico">✅</span> Audit Log — كل عملية تُسجَّل</li>
+        <li><span class="ico">✅</span> دعم PDPL الإماراتي (حذف البيانات)</li>
+        <li><span class="ico">✅</span> <span class="code">reset.sql</span> لإعادة البناء بأمان</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h3>🔒 الأمان</h3>
+      <ul>
+        <li><span class="ico">✅</span> ANTHROPIC_API_KEY مخفي — backend فقط</li>
+        <li><span class="ico">✅</span> CSP headers على جميع الصفحات</li>
+        <li><span class="ico">✅</span> X-Frame-Options DENY</li>
+        <li><span class="ico">✅</span> httpOnly cookies — لا localStorage</li>
+        <li><span class="ico">✅</span> بيانات تجربة محذوفة من صفحات الدخول</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <hr class="sep">
+
+  <!-- المشاكل الحالية -->
+  <h2>⚠️ المشاكل الحالية (تحتاج حل)</h2>
+
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-num" style="background:#f8717122;color:#f87171">1</div>
+      <div>
+        <div style="font-weight:700;color:#f87171">Vercel لا يُنشر التحديثات تلقائياً</div>
+        <div style="font-size:12px;color:#666;margin-top:3px">الكود على GitHub لكن Vercel يشتغل على نسخة قديمة</div>
+      </div>
+      <span class="tag blocked" style="margin-right:auto">مُعلَّق</span>
+    </div>
+    <div class="phase-body">
+      <ul>
+        <li><span class="ico">→</span> اذهب: vercel.com → مشروعك → Deployments → Redeploy</li>
+        <li><span class="ico">→</span> أو Settings → Git → تأكد ربط main branch</li>
+        <li><span class="ico">→</span> بعد النشر افتح: <span class="code">https://cv-dash1.vercel.app/api/debug</span> للتحقق</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-num" style="background:#C9A84C22;color:#C9A84C">2</div>
+      <div>
+        <div style="font-weight:700;color:#C9A84C">Supabase متصل لكن الشركات لا تظهر</div>
+        <div style="font-size:12px;color:#666;margin-top:3px">بعد حل مشكلة Vercel، افتح /api/debug للتحقق من الاتصال</div>
+      </div>
+      <span class="tag pending">جزئي</span>
+    </div>
+    <div class="phase-body">
+      <ul>
+        <li><span class="ico">→</span> قاعدة البيانات تعمل — schema اتشغل بنجاح</li>
+        <li><span class="ico">→</span> الشركات الثلاث موجودة في Supabase</li>
+        <li><span class="ico">→</span> المشكلة: Vercel يعمل على نسخة قديمة لا تعرف Supabase</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- الخطوات الفورية -->
+  <h2>🚀 الخطوات الفورية بعد الاستيقاظ</h2>
+
+  <div class="grid">
+    <div class="card" style="border-color:#C9A84C44">
+      <h3 style="color:#C9A84C">الخطوة 1 — إصلاح Vercel (10 دقائق)</h3>
+      <ul>
+        <li><span class="ico">1️⃣</span> افتح vercel.com → مشروع cv-dash1</li>
+        <li><span class="ico">2️⃣</span> اضغط Deployments → Redeploy</li>
+        <li><span class="ico">3️⃣</span> انتظر 2-3 دقائق حتى يكتمل</li>
+        <li><span class="ico">4️⃣</span> افتح <span class="code">/api/debug</span> وتأكد <span class="code">dbConnected: true</span></li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:#34d39944">
+      <h3 style="color:#34d399">الخطوة 2 — اختبار الدخول</h3>
+      <ul>
+        <li><span class="ico">1️⃣</span> Admin: بريدك + كلمة مرورك من Vercel env</li>
+        <li><span class="ico">2️⃣</span> HR: <span class="code">hr@haad.ae</span> / <span class="code">HR@2024!</span></li>
+        <li><span class="ico">3️⃣</span> تأكد ظهور 3 شركات في Admin</li>
+        <li><span class="ico">4️⃣</span> جرب إضافة شركة جديدة</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr class="sep">
+
+  <!-- التطوير المستقبلي -->
+  <h2>🔮 التطوير المستقبلي (مقترح)</h2>
+
+  <table>
+    <tr>
+      <th>الميزة</th>
+      <th>الأولوية</th>
+      <th>الوقت المقدر</th>
+      <th>الحالة</th>
+    </tr>
+    <tr>
+      <td><strong>صفحة تحليلات متقدمة</strong> — رسوم بيانية، توزيع المتقدمين، معدل القبول</td>
+      <td>عالية</td>
+      <td>1-2 يوم</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+    <tr>
+      <td><strong>إشعارات البريد الإلكتروني</strong> — إشعار للمتقدم عند قبوله أو رفضه</td>
+      <td>عالية</td>
+      <td>1 يوم</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+    <tr>
+      <td><strong>صفحة إدارة الوظائف</strong> — إنشاء وظائف، روابط تقديم متعددة</td>
+      <td>عالية</td>
+      <td>2 أيام</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+    <tr>
+      <td><strong>تصدير Excel / PDF</strong> — تصدير قائمة المتقدمين</td>
+      <td>متوسطة</td>
+      <td>1 يوم</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+    <tr>
+      <td><strong>مقارنة المتقدمين</strong> — مقارنة 2-3 مرشحين جنباً إلى جنب</td>
+      <td>متوسطة</td>
+      <td>1 يوم</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+    <tr>
+      <td><strong>تطبيق جوال</strong> — Expo React Native لـ HR على الجوال</td>
+      <td>منخفضة</td>
+      <td>2 أسبوع</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+    <tr>
+      <td><strong>دعم متعدد اللغات</strong> — إنجليزي كامل إلى جانب العربي</td>
+      <td>منخفضة</td>
+      <td>2 أيام</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+    <tr>
+      <td><strong>نظام الاشتراك والدفع</strong> — Stripe للخطط المدفوعة</td>
+      <td>تجارية</td>
+      <td>3 أيام</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+    <tr>
+      <td><strong>لوحة تحكم مخصصة لكل شركة</strong> — ألوان وشعار مختلف</td>
+      <td>تجارية</td>
+      <td>1 يوم</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+    <tr>
+      <td><strong>حذف البيانات التلقائي</strong> — pg_cron بعد 12 شهر (PDPL)</td>
+      <td>قانونية</td>
+      <td>نصف يوم</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+    <tr>
+      <td><strong>صفحة Privacy Policy</strong> — امتثال PDPL الإماراتي</td>
+      <td>قانونية</td>
+      <td>نصف يوم</td>
+      <td><span class="tag future">مقترح</span></td>
+    </tr>
+  </table>
+
+  <hr class="sep">
+
+  <!-- بنية الملفات -->
+  <h2>📁 بنية المشروع الحالية</h2>
+  <div class="card">
+    <pre style="font-family:monospace;font-size:13px;color:#888;line-height:1.8">
+cv-dash1/
+├── app/
+│   ├── admin/
+│   │   ├── login/page.jsx          ✅ بوابة دخول Super Admin
+│   │   └── dashboard/page.jsx      ✅ لوحة Admin كاملة
+│   ├── hr/
+│   │   ├── login/page.jsx          ✅ بوابة دخول HR
+│   │   └── dashboard/page.jsx      ✅ لوحة HR كاملة
+│   ├── company-admin/
+│   │   ├── login/page.jsx          ✅ بوابة دخول Company Admin
+│   │   └── dashboard/page.jsx      ✅ لوحة Company Admin
+│   ├── applicant/
+│   │   └── apply/[token]/page.jsx  ✅ صفحة التقديم بـ CV
+│   └── api/
+│       ├── auth/login/route.js     ✅ JWT Auth (3 أدوار)
+│       ├── auth/logout/route.js    ✅ تسجيل خروج
+│       ├── me/route.js             ✅ بيانات المستخدم الحالي
+│       ├── companies/route.js      ✅ GET / POST شركات
+│       ├── companies/[id]/route.js ✅ DELETE / PATCH شركة
+│       ├── applicants/route.js     ✅ GET / POST متقدمين
+│       ├── applicants/[id]/route.js✅ PUT / DELETE متقدم
+│       ├── hr-accounts/route.js    ✅ GET / POST حسابات HR
+│       ├── hr-accounts/[id]/route.js✅ PATCH / DELETE حساب HR
+│       ├── audit-log/route.js      ✅ سجل التدقيق
+│       ├── parse-cv/route.js       ✅ Claude AI (مخفي)
+│       └── debug/route.js          🔧 تشخيص مؤقت
+├── lib/
+│   ├── auth.js                     ✅ JWT sign/verify
+│   ├── supabase-server.js          ✅ Supabase Admin Client
+│   ├── theme.js                    ✅ Dark/Light mode
+│   └── data.js                     ✅ Mock data + DEMO_USERS
+├── middleware.js                   ✅ حماية المسارات
+├── supabase/
+│   ├── schema.sql                  ✅ الجداول + RLS
+│   └── reset.sql                   ✅ إعادة بناء آمنة
+├── next.config.mjs                 ✅ CSP headers
+├── vercel.json                     ✅ إعدادات النشر
+└── package.json                    ✅ التبعيات
+    </pre>
+  </div>
+
+  <hr class="sep">
+
+  <!-- متغيرات البيئة -->
+  <h2>🔑 متغيرات البيئة المطلوبة</h2>
+  <div class="card">
+    <table>
+      <tr><th>المتغير</th><th>الوصف</th><th>مكانه</th></tr>
+      <tr><td><span class="code">NEXT_PUBLIC_SUPABASE_URL</span></td><td>رابط مشروع Supabase</td><td>Vercel + .env.local</td></tr>
+      <tr><td><span class="code">NEXT_PUBLIC_SUPABASE_ANON_KEY</span></td><td>مفتاح Supabase العام</td><td>Vercel + .env.local</td></tr>
+      <tr><td><span class="code">SUPABASE_SERVICE_ROLE_KEY</span></td><td>مفتاح Supabase السري (backend فقط)</td><td>Vercel + .env.local</td></tr>
+      <tr><td><span class="code">ANTHROPIC_API_KEY</span></td><td>مفتاح Claude AI (مخفي تماماً)</td><td>Vercel + .env.local</td></tr>
+      <tr><td><span class="code">JWT_SECRET</span></td><td>مفتاح توقيع الـ JWT (32+ حرف عشوائي)</td><td>Vercel + .env.local</td></tr>
+      <tr><td><span class="code">ADMIN_EMAIL</span></td><td>بريد Super Admin</td><td>Vercel + .env.local</td></tr>
+      <tr><td><span class="code">ADMIN_PASSWORD</span></td><td>كلمة مرور Super Admin</td><td>Vercel + .env.local</td></tr>
+    </table>
+  </div>
+
+  <hr class="sep">
+
+  <!-- الحسابات التجريبية -->
+  <h2>👤 حسابات الدخول (بعد تشغيل reset.sql)</h2>
+  <div class="grid">
+    <div class="card" style="border-color:#C9A84C44">
+      <h3 style="color:#C9A84C">Super Admin</h3>
+      <ul>
+        <li><span class="ico">📧</span> من Vercel env: <span class="code">ADMIN_EMAIL</span></li>
+        <li><span class="ico">🔑</span> من Vercel env: <span class="code">ADMIN_PASSWORD</span></li>
+        <li><span class="ico">🔗</span> <span class="code">/admin/login</span></li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:#34d39944">
+      <h3 style="color:#34d399">حسابات HR التجريبية</h3>
+      <ul>
+        <li><span class="ico">📧</span> <span class="code">hr@haad.ae</span> / <span class="code">HR@2024!</span> — hr_manager</li>
+        <li><span class="ico">📧</span> <span class="code">hr@adec.ae</span> / <span class="code">HR@2024!</span> — hr</li>
+        <li><span class="ico">📧</span> <span class="code">hr@dek.ae</span> / <span class="code">HR@2024!</span> — hr</li>
+        <li><span class="ico">🔗</span> <span class="code">/hr/login</span></li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:#818cf844">
+      <h3 style="color:#818cf8">Company Admin</h3>
+      <ul>
+        <li><span class="ico">ℹ️</span> يُنشأ من Super Admin فقط</li>
+        <li><span class="ico">📍</span> Admin Dashboard → تبويب حسابات HR → اختر دور "company_admin"</li>
+        <li><span class="ico">🔗</span> <span class="code">/company-admin/login</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note">
+    💡 <strong>نصيحة:</strong> بعد إطلاق المنتج لعميل — أضف شركته من Admin Dashboard، أضف حساب company_admin له، وأعطه رابط <span class="code">/company-admin/login</span>. هو يضيف موظفيه بنفسه.
+  </div>
+
+</div>
+
+<footer>
+  Smart CV Dashboard · Next.js 14 · Supabase · Claude AI · Vercel<br>
+  تطوير: Claude Code · 2026
+</footer>
+
+</body>
+</html>
