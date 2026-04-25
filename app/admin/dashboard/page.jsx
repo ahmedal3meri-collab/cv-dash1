@@ -34,6 +34,8 @@ export default function AdminDashboard() {
   const [newHR, setNewHR] = useState({ name: "", email: "", password: "", companyId: "", role: "hr" });
   const [hrLoading, setHrLoading] = useState(false);
   const [hrError, setHrError] = useState("");
+  const [hrSearch, setHrSearch] = useState("");
+  const [hrRoleFilter, setHrRoleFilter] = useState("الكل");
 
   useEffect(() => {
     Promise.all([
@@ -141,6 +143,13 @@ export default function AdminDashboard() {
     const q = companySearch.toLowerCase();
     if (q && !c.name?.toLowerCase().includes(q)) return false;
     if (companyPlanFilter !== "الكل" && c.plan !== companyPlanFilter) return false;
+    return true;
+  });
+
+  const filteredHR = hrAccounts.filter((h) => {
+    const q = hrSearch.toLowerCase();
+    if (q && !h.name?.toLowerCase().includes(q) && !h.email?.toLowerCase().includes(q)) return false;
+    if (hrRoleFilter !== "الكل" && h.role !== hrRoleFilter) return false;
     return true;
   });
 
@@ -410,15 +419,40 @@ export default function AdminDashboard() {
               </div>
             )}
 
+            <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+              <input
+                style={{ ...$.inp, maxWidth: 260, flex: 1 }}
+                placeholder="🔍 بحث بالاسم أو البريد..."
+                value={hrSearch}
+                onChange={(e) => setHrSearch(e.target.value)}
+              />
+              <select style={{ ...$.inp, maxWidth: 180 }} value={hrRoleFilter} onChange={(e) => setHrRoleFilter(e.target.value)}>
+                <option>الكل</option>
+                <option value="hr">HR Officer</option>
+                <option value="hr_manager">HR Manager</option>
+                <option value="company_admin">Company Admin</option>
+              </select>
+              {(hrSearch || hrRoleFilter !== "الكل") && (
+                <button style={{ ...$.btn("s"), padding: "8px 14px", fontSize: 13 }} onClick={() => { setHrSearch(""); setHrRoleFilter("الكل"); }}>
+                  مسح التصفية
+                </button>
+              )}
+              <span style={{ fontSize: 12, color: $.muted, alignSelf: "center", marginRight: "auto" }}>
+                {filteredHR.length} من {hrAccounts.length} حساب
+              </span>
+            </div>
+
             {hrAccounts.length === 0 ? (
               <div style={{ textAlign: "center", color: $.muted, padding: 40 }}>لا توجد حسابات HR. أضف أول حساب!</div>
+            ) : filteredHR.length === 0 ? (
+              <div style={{ textAlign: "center", color: $.muted, padding: 40 }}>لا توجد نتائج مطابقة</div>
             ) : (
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr>{["الاسم", "البريد", "الشركة", "الصلاحية", "الحالة", "آخر دخول", "إجراءات"].map((h) => <th key={h} style={$.th}>{h}</th>)}</tr>
                 </thead>
                 <tbody>
-                  {hrAccounts.map((h) => (
+                  {filteredHR.map((h) => (
                     <tr key={h.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
                       <td style={$.td}>
                         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
