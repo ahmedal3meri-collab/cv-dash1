@@ -10,7 +10,7 @@ const portals = [
     href: "/admin/login",
     icon: "🛡️",
     badge: "SYSTEM",
-    features: ["إدارة الشركات والخطط", "تحليلات النظام الكاملة", "إعدادات الألوان والروابط"],
+    features: ["إدارة الشركات والخطط والألوان", "تحليلات النظام الكاملة", "روابط التقديم وسجل النشاط"],
   },
   {
     title: "Company Admin",
@@ -19,7 +19,7 @@ const portals = [
     href: "/company-admin/login",
     icon: "🏢",
     badge: "COMPANY",
-    features: ["إدارة حسابات HR", "إعدادات الشركة", "عرض تقارير التوظيف"],
+    features: ["إدارة حسابات HR وصلاحياتها", "إحصاءات المتقدمين وتقارير التوظيف", "سجل النشاط الأمني"],
   },
   {
     title: "بوابة HR",
@@ -28,13 +28,28 @@ const portals = [
     href: "/hr/login",
     icon: "👥",
     badge: "HR",
-    features: ["مراجعة السير الذاتية بالذكاء الاصطناعي", "إدارة الوظائف والروابط", "جدولة المقابلات"],
+    features: ["مراجعة السير الذاتية بالذكاء الاصطناعي", "إدارة الوظائف والروابط", "جدولة المقابلات وتصدير التقارير"],
   },
+];
+
+const demoCredentials = [
+  { label: "Super Admin", email: "superadmin@smartcv.ae", password: "Admin@2024!", color: "#C9A84C" },
+  { label: "Company Admin", email: "admin@haad.ae", password: "Admin@2024!", color: "#6366f1" },
+  { label: "HR Manager", email: "hr@company.ae", password: "HR@2024!", color: "#059669" },
 ];
 
 export default function Home() {
   const router = useRouter();
   const [hovered, setHovered] = useState(null);
+  const [showDemo, setShowDemo] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(null);
+
+  const copyToClipboard = (text, key) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedEmail(key);
+      setTimeout(() => setCopiedEmail(null), 1500);
+    });
+  };
 
   return (
     <div style={{ fontFamily: "'Cairo','Segoe UI',sans-serif", direction: "rtl", minHeight: "100vh", background: "#0a0a0f", color: "#e8e0d0", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 20px" }}>
@@ -42,14 +57,41 @@ export default function Home() {
       <div style={{ position: "fixed", top: "20%", left: "50%", transform: "translateX(-50%)", width: 600, height: 300, background: "radial-gradient(ellipse,#C9A84C0a 0%,transparent 70%)", pointerEvents: "none" }} />
 
       {/* Header */}
-      <div style={{ textAlign: "center", marginBottom: 52 }}>
+      <div style={{ textAlign: "center", marginBottom: 48 }}>
         <div style={{ width: 68, height: 68, background: "linear-gradient(135deg,#C9A84C,#8b6914)", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 18px", fontSize: 32, boxShadow: "0 0 40px #C9A84C33" }}>
           🤖
         </div>
         <h1 style={{ fontSize: 30, fontWeight: 900, background: "linear-gradient(135deg,#C9A84C,#ffe580)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", margin: "0 0 8px" }}>
           Smart CV Dashboard
         </h1>
-        <p style={{ color: "#555", fontSize: 14, margin: 0 }}>منصة إدارة التوظيف بالذكاء الاصطناعي — اختر بوابتك</p>
+        <p style={{ color: "#555", fontSize: 14, margin: "0 0 16px" }}>منصة إدارة التوظيف بالذكاء الاصطناعي — مصممة للجهات الحكومية الإماراتية</p>
+        <button
+          onClick={() => setShowDemo((v) => !v)}
+          style={{ background: "transparent", border: "1px solid #C9A84C44", borderRadius: 8, padding: "6px 16px", color: "#C9A84C", cursor: "pointer", fontFamily: "inherit", fontSize: 12, fontWeight: 700, letterSpacing: 0.5 }}
+        >
+          {showDemo ? "▲ إخفاء بيانات التجربة" : "▼ بيانات الدخول التجريبية"}
+        </button>
+
+        {showDemo && (
+          <div style={{ marginTop: 16, background: "#12121a", border: "1px solid #1e1e2e", borderRadius: 14, padding: 16, maxWidth: 540, margin: "16px auto 0", textAlign: "right" }}>
+            <div style={{ fontSize: 11, color: "#444", marginBottom: 12, fontWeight: 700, textAlign: "center" }}>🔑 بيانات الدخول التجريبية — Demo Mode (بدون Supabase)</div>
+            {demoCredentials.map((cred) => (
+              <div key={cred.email} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderRadius: 10, background: "#0d0d15", border: `1px solid ${cred.color}22`, marginBottom: 8 }}>
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: cred.color, marginBottom: 3 }}>{cred.label}</div>
+                  <div style={{ fontSize: 11, color: "#555" }}>{cred.email}</div>
+                  <div style={{ fontSize: 11, color: "#444" }}>كلمة المرور: {cred.password}</div>
+                </div>
+                <button
+                  onClick={() => copyToClipboard(cred.email, cred.email)}
+                  style={{ background: "transparent", border: `1px solid ${cred.color}44`, borderRadius: 8, padding: "4px 10px", color: copiedEmail === cred.email ? "#34d399" : cred.color, cursor: "pointer", fontFamily: "inherit", fontSize: 11, fontWeight: 700, transition: "all .2s" }}
+                >
+                  {copiedEmail === cred.email ? "✓ نُسخ" : "نسخ"}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Portal cards */}
@@ -111,11 +153,18 @@ export default function Home() {
         ))}
       </div>
 
+      {/* Tech stack badges */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginTop: 36 }}>
+        {["Next.js 14", "Supabase", "Claude AI", "JWT Auth", "PDPL 2023"].map((t) => (
+          <span key={t} style={{ fontSize: 11, color: "#333", background: "#0d0d15", border: "1px solid #1e1e2e", borderRadius: 20, padding: "3px 10px" }}>{t}</span>
+        ))}
+      </div>
+
       {/* Footer */}
-      <div style={{ marginTop: 48, textAlign: "center" }}>
-        <a href="/privacy" style={{ fontSize: 12, color: "#333", textDecoration: "none" }}>🔒 سياسة الخصوصية — PDPL 2023</a>
+      <div style={{ marginTop: 28, textAlign: "center" }}>
+        <a href="/privacy" style={{ fontSize: 12, color: "#444", textDecoration: "none" }}>🔒 سياسة الخصوصية — PDPL 2023</a>
         <span style={{ color: "#222", margin: "0 12px" }}>·</span>
-        <span style={{ fontSize: 12, color: "#222" }}>Smart CV Dashboard © 2026</span>
+        <span style={{ fontSize: 12, color: "#333" }}>Smart CV Dashboard © 2026</span>
       </div>
     </div>
   );

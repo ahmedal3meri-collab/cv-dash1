@@ -281,10 +281,15 @@ INSERT INTO companies (id, name, plan, primary_color, secondary_color, jobs, app
   ('22222222-2222-2222-2222-222222222222', 'مجموعة أبوظبي للطاقة', 'Professional', '#2563eb', '#0f172a', 2, 0, 1),
   ('33333333-3333-3333-3333-333333333333', 'دائرة التعليم والمعرفة','Basic',        '#059669', '#064e3b', 1, 0, 1);
 
--- حسابات HR الأولية
--- كلمة المرور الافتراضية: HR@2024!
+-- حسابات HR والـ Company Admin الأولية
+-- كلمة المرور الافتراضية لجميع الحسابات: HR@2024!
 -- غيّرها فور تسجيل الدخول
+-- Hash المولَّد من: bcrypt.hashSync("HR@2024!", 10)
 INSERT INTO hr_accounts (company_id, name, email, password_hash, role) VALUES
+  -- Company Admins (مسؤولو الشركات)
+  ('11111111-1111-1111-1111-111111111111', 'منى الشامسي',   'admin@haad.ae', '$2b$10$pD2GOyUlPjjBIald6FuGJu0S8Lq.p6OFi8QVIP1l6p4QTGepThrJa', 'company_admin'),
+  ('22222222-2222-2222-2222-222222222222', 'سعيد الزعابي',  'admin@adec.ae', '$2b$10$pD2GOyUlPjjBIald6FuGJu0S8Lq.p6OFi8QVIP1l6p4QTGepThrJa', 'company_admin'),
+  -- HR Managers & Officers
   ('11111111-1111-1111-1111-111111111111', 'سارة المطيري',  'hr@haad.ae',   '$2b$10$pD2GOyUlPjjBIald6FuGJu0S8Lq.p6OFi8QVIP1l6p4QTGepThrJa', 'hr_manager'),
   ('22222222-2222-2222-2222-222222222222', 'خالد الشامسي',  'hr@adec.ae',   '$2b$10$pD2GOyUlPjjBIald6FuGJu0S8Lq.p6OFi8QVIP1l6p4QTGepThrJa', 'hr'),
   ('33333333-3333-3333-3333-333333333333', 'فاطمة الكعبي',  'hr@dek.ae',    '$2b$10$pD2GOyUlPjjBIald6FuGJu0S8Lq.p6OFi8QVIP1l6p4QTGepThrJa', 'hr');

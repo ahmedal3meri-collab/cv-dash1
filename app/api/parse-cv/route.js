@@ -1,7 +1,11 @@
 export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
 
-const CV_PROMPT = `استخرج المعلومات من هذه السيرة الذاتية وأعدها كـ JSON فقط بدون أي نص آخر:
+// Cache the system prompt — avoids re-tokenizing on every request
+const SYSTEM_PROMPT = `أنت محلل سير ذاتية خبير. مهمتك استخراج المعلومات من السيرة الذاتية وإعادتها كـ JSON فقط بدون أي نص آخر.
+
+هيكل JSON المطلوب:
 {
   "name": "الاسم الكامل",
   "nationality": "الجنسية",
@@ -19,12 +23,21 @@ const CV_PROMPT = `استخرج المعلومات من هذه السيرة ال
   "certifications": ["شهادة1", "شهادة2"],
   "aiSummary": "ملخص احترافي في 3 جمل: أبرز نقاط القوة، الخبرات المميزة، والتوصية بشأن مناسبته للوظيفة"
 }
-إذا لم تجد معلومة معينة اكتب: غير محدد
-أعد JSON فقط بدون أي نص إضافي.`;
+
+قواعد مهمة:
+- إذا لم تجد معلومة معينة اكتب: "غير محدد"
+- أعد JSON فقط بدون markdown أو نص إضافي
+- اجعل aiSummary احترافياً ومفيداً لفريق HR`;
+
+let anthropicClient = null;
+function getClient() {
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  }
+  return anthropicClient;
+}
 
 export async function POST(request) {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-
   try {
     const { pdf, name, email } = await request.json();
 
@@ -32,44 +45,45 @@ export async function POST(request) {
       return NextResponse.json({ error: "ملف PDF مطلوب" }, { status: 400 });
     }
 
-    if (!apiKey) {
+    if (!process.env.ANTHROPIC_API_KEY) {
       return NextResponse.json(getDemoData(name, email), { status: 200 });
     }
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1500,
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "document",
-                source: { type: "base64", media_type: "application/pdf", data: pdf },
+    const client = getClient();
+
+    const message = await client.messages.create({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1500,
+      system: [
+        {
+          type: "text",
+          text: SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "document",
+              source: {
+                type: "base64",
+                media_type: "application/pdf",
+                data: pdf,
               },
-              { type: "text", text: CV_PROMPT },
-            ],
-          },
-        ],
-      }),
+            },
+            {
+              type: "text",
+              text: "استخرج جميع المعلومات من هذه السيرة الذاتية وأعدها كـ JSON.",
+            },
+          ],
+        },
+      ],
     });
 
-    if (!res.ok) {
-      console.error(`Claude API error: ${res.status}`);
-      return NextResponse.json(getDemoData(name, email), { status: 200 });
-    }
-
-    const data = await res.json();
-    const text = data.content[0].text.trim().replace(/```json|```/g, "").trim();
+    const text = message.content[0].text.trim().replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(text);
-
     return NextResponse.json(parsed);
   } catch (err) {
     console.error("parse-cv error:", err);

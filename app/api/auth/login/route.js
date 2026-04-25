@@ -105,6 +105,7 @@ export async function POST(request) {
       email,
       role: user.role,
       companyId: user.companyId,
+      hrId: user.hrId || null,
       name: user.name,
       companyName: user.companyName,
       primaryColor: user.primaryColor,
