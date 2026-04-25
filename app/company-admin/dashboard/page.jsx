@@ -24,8 +24,9 @@ export default function CompanyAdminDashboard() {
   const [user, setUser]           = useState(null);
   const [hrAccounts, setHrAccounts] = useState([]);
   const [auditLog, setAuditLog]   = useState([]);
+  const [applicants, setApplicants] = useState([]);
   const [loading, setLoading]     = useState(true);
-  const [tab, setTab]             = useState("hr");
+  const [tab, setTab]             = useState("overview");
 
   // HR form
   const [showAddHR, setShowAddHR] = useState(false);
@@ -53,13 +54,15 @@ export default function CompanyAdminDashboard() {
         return Promise.all([
           fetch(`/api/hr-accounts?companyId=${me.companyId}`).then((r) => r.json()),
           fetch("/api/audit-log?limit=200").then((r) => r.json()),
+          fetch(`/api/applicants?companyId=${me.companyId}`).then((r) => r.json()),
         ]);
       })
       .then((results) => {
         if (!results) return;
-        const [hrs, logs] = results;
+        const [hrs, logs, apps] = results;
         setHrAccounts(Array.isArray(hrs) ? hrs : []);
         setAuditLog(Array.isArray(logs) ? logs : []);
+        setApplicants(Array.isArray(apps) ? apps : []);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -157,10 +160,10 @@ export default function CompanyAdminDashboard() {
   const fmtDate = (d) => d ? new Date(d).toLocaleString("ar-AE", { dateStyle: "short", timeStyle: "short" }) : "—";
 
   const stats = [
-    { l: "إجمالي HR", v: hrAccounts.length, c: G },
-    { l: "حسابات فعّالة", v: hrAccounts.filter((h) => h.is_active).length, c: "#34d399" },
-    { l: "موقوفة", v: hrAccounts.filter((h) => !h.is_active).length, c: "#f87171" },
-    { l: "أحداث النشاط", v: auditLog.length, c: "#fbbf24" },
+    { l: "إجمالي المتقدمين", v: applicants.length, c: G },
+    { l: "قيد المراجعة", v: applicants.filter((a) => a.status === "مراجعة").length, c: "#60a5fa" },
+    { l: "مقبول", v: applicants.filter((a) => a.status === "مقبول").length, c: "#34d399" },
+    { l: "مرفوض", v: applicants.filter((a) => a.status === "مرفوض").length, c: "#f87171" },
   ];
 
   if (loading) {
@@ -185,8 +188,9 @@ export default function CompanyAdminDashboard() {
         </div>
         <div style={{ flex: 1, padding: "8px 0" }}>
           {[
-            { k: "hr",    ic: "👥", l: "إدارة HR" },
-            { k: "audit", ic: "📋", l: "سجل النشاط" },
+            { k: "overview", ic: "🏠", l: "نظرة عامة" },
+            { k: "hr",       ic: "👥", l: "إدارة HR" },
+            { k: "audit",    ic: "📋", l: "سجل النشاط" },
           ].map((item) => (
             <div key={item.k} onClick={() => setTab(item.k)}
               style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px", margin: "2px 10px", borderRadius: 10, cursor: "pointer", background: tab === item.k ? `${G}1a` : "transparent", color: tab === item.k ? G : $.muted, borderRight: tab === item.k ? `3px solid ${G}` : "3px solid transparent", fontWeight: tab === item.k ? 700 : 400, fontSize: 14, transition: "all .2s" }}>
@@ -225,6 +229,85 @@ export default function CompanyAdminDashboard() {
             </div>
           ))}
         </div>
+
+        {/* ── Tab: Overview ── */}
+        {tab === "overview" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            {/* Pipeline breakdown */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+              <div style={$.card}>
+                <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>📊 حالة المتقدمين</h3>
+                {[{ l: "مراجعة", c: "#60a5fa" }, { l: "مقبول", c: "#34d399" }, { l: "مرفوض", c: "#f87171" }].map((s) => {
+                  const n = applicants.filter((a) => a.status === s.l).length;
+                  return (
+                    <div key={s.l} style={{ marginBottom: 16 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13 }}>
+                        <span style={{ color: s.c }}>{s.l}</span>
+                        <span style={{ color: $.muted }}>{n} ({applicants.length ? Math.round(n / applicants.length * 100) : 0}%)</span>
+                      </div>
+                      <div style={{ height: 7, background: $.surface3, borderRadius: 4 }}>
+                        <div style={{ height: "100%", background: s.c, borderRadius: 4, width: `${applicants.length ? (n / applicants.length) * 100 : 0}%`, transition: "width 1s" }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={$.card}>
+                <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>👥 فريق HR</h3>
+                {hrAccounts.length === 0 ? (
+                  <div style={{ textAlign: "center", color: $.muted, padding: 24 }}>لا يوجد حسابات HR</div>
+                ) : hrAccounts.map((h) => (
+                  <div key={h.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${$.border}` }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ width: 32, height: 32, borderRadius: 8, background: `${G}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: G, fontSize: 13 }}>{(h.name || "?")[0]}</div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{h.name}</div>
+                        <div style={{ fontSize: 11, color: $.muted }}>{h.role === "hr_manager" ? "HR Manager" : "HR Officer"}</div>
+                      </div>
+                    </div>
+                    <span style={$.tg(h.is_active ? "#34d399" : "#f87171")}>{h.is_active ? "فعّال" : "موقوف"}</span>
+                  </div>
+                ))}
+                <button style={{ ...$.btn("g"), width: "100%", marginTop: 14, padding: "8px 0", fontSize: 13 }} onClick={() => setTab("hr")}>إدارة الفريق →</button>
+              </div>
+            </div>
+
+            {/* Recent applicants */}
+            <div style={$.card}>
+              <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>🕐 آخر المتقدمين</h3>
+              {applicants.length === 0 ? (
+                <div style={{ textAlign: "center", color: $.muted, padding: 32 }}>لا يوجد متقدمون بعد — أضف وظائف وشارك رابط التقديم</div>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr>{["الاسم", "المسمى الوظيفي", "الجنسية", "التقييم", "الحالة", "التاريخ"].map((h) => <th key={h} style={$.th}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {applicants.slice(0, 10).map((a) => (
+                      <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
+                        <td style={$.td}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <div style={{ width: 30, height: 30, borderRadius: 8, background: `${G}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: G, fontSize: 12 }}>{(a.name || "?")[0]}</div>
+                            <span style={{ fontWeight: 600, fontSize: 13 }}>{a.name}</span>
+                          </div>
+                        </td>
+                        <td style={{ ...$.td, color: $.muted, fontSize: 12 }}>{a.currentTitle || "—"}</td>
+                        <td style={{ ...$.td, color: $.muted, fontSize: 12 }}>{a.nationality || "—"}</td>
+                        <td style={$.td}>
+                          <span style={{ color: "#f59e0b", fontSize: 13 }}>{"★".repeat(a.rating || 0)}{"☆".repeat(5 - (a.rating || 0))}</span>
+                        </td>
+                        <td style={$.td}>
+                          <span style={$.tg(a.status === "مقبول" ? "#34d399" : a.status === "مرفوض" ? "#f87171" : "#60a5fa")}>{a.status}</span>
+                        </td>
+                        <td style={{ ...$.td, color: $.muted, fontSize: 12 }}>{a.date || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Tab: HR Management ── */}
         {tab === "hr" && (

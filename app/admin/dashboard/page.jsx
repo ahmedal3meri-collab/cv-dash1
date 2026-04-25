@@ -26,6 +26,8 @@ export default function AdminDashboard() {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState("");
   const [editingColor, setEditingColor] = useState(null);
+  const [editingCompany, setEditingCompany] = useState(null); // { id, name, plan }
+  const [editCompanyLoading, setEditCompanyLoading] = useState(false);
   const [companySearch, setCompanySearch] = useState("");
   const [companyPlanFilter, setCompanyPlanFilter] = useState("الكل");
 
@@ -89,8 +91,22 @@ export default function AdminDashboard() {
   };
 
   const deleteCompany = async (id) => {
+    if (!confirm("هل تريد حذف هذه الشركة وجميع بياناتها؟")) return;
     await fetch(`/api/companies/${id}`, { method: "DELETE" });
     setCompanies((p) => p.filter((c) => c.id !== id));
+  };
+
+  const saveEditCompany = async () => {
+    if (!editingCompany?.name) return;
+    setEditCompanyLoading(true);
+    await fetch(`/api/companies/${editingCompany.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editingCompany.name, plan: editingCompany.plan }),
+    });
+    setCompanies((p) => p.map((c) => c.id === editingCompany.id ? { ...c, name: editingCompany.name, plan: editingCompany.plan } : c));
+    setEditingCompany(null);
+    setEditCompanyLoading(false);
   };
 
   const addHRAccount = async () => {
@@ -395,6 +411,7 @@ export default function AdminDashboard() {
                   </div>
                   <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
                     <button style={{ ...$.btn("g"), flex: 1, padding: "8px 0", fontSize: 12 }} onClick={() => router.push("/hr/login")}>عرض HR</button>
+                    <button title="تعديل الاسم والخطة" style={{ ...$.btn("s"), padding: "8px 10px", fontSize: 12 }} onClick={() => setEditingCompany({ id: c.id, name: c.name, plan: c.plan })}>✏️</button>
                     <button title="تغيير اللون" style={{ padding: "8px 10px", borderRadius: 8, border: `2px solid ${c.primaryColor || G}`, background: `${c.primaryColor || G}22`, cursor: "pointer", fontSize: 16 }} onClick={() => setEditingColor(editingColor === c.id ? null : c.id)}>🎨</button>
                     <button style={{ ...$.btn("d"), padding: "8px 12px", fontSize: 12 }} onClick={() => deleteCompany(c.id)}><Icon n="del" s={14} /></button>
                   </div>
@@ -690,6 +707,38 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* ── Edit Company Modal ── */}
+      {editingCompany && (
+        <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 300, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ ...$.card, width: 420, boxShadow: "0 30px 60px #000000cc" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <h3 style={{ margin: 0, fontSize: 17, color: G }}>✏️ تعديل الشركة</h3>
+              <button style={{ background: "none", border: "none", color: $.muted, cursor: "pointer", fontSize: 20 }} onClick={() => setEditingCompany(null)}>✕</button>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div>
+                <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>اسم الشركة *</label>
+                <input style={$.inp} value={editingCompany.name} onChange={(e) => setEditingCompany((p) => ({ ...p, name: e.target.value }))} />
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: $.muted, display: "block", marginBottom: 5 }}>الخطة</label>
+                <select style={$.inp} value={editingCompany.plan} onChange={(e) => setEditingCompany((p) => ({ ...p, plan: e.target.value }))}>
+                  <option>Basic</option>
+                  <option>Professional</option>
+                  <option>Enterprise</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                <button style={{ ...$.btn("p"), flex: 1 }} onClick={saveEditCompany} disabled={editCompanyLoading || !editingCompany.name}>
+                  {editCompanyLoading ? "⏳ جاري الحفظ..." : "حفظ"}
+                </button>
+                <button style={$.btn("s")} onClick={() => setEditingCompany(null)}>إلغاء</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
