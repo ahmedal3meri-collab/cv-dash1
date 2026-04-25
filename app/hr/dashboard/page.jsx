@@ -86,6 +86,8 @@ export default function HRDashboard() {
   const [showSettings, setShowSettings] = useState(false);
   const [settingsCopied, setSettingsCopied] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [pwMsg, setPwMsg] = useState({ text: "", ok: false });
   const [fJob, setFJob] = useState("all");
   const [fRating, setFRating] = useState(0);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -175,6 +177,25 @@ export default function HRDashboard() {
     if (!noteIn.trim()) return;
     await updateApplicant(selApplicant.id, { notes: noteIn });
     setNoteIn("");
+  };
+
+  const changeOwnPassword = async () => {
+    setPwMsg({ text: "", ok: false });
+    if (!pwForm.next || pwForm.next.length < 8) { setPwMsg({ text: "كلمة المرور الجديدة 8 أحرف على الأقل", ok: false }); return; }
+    if (pwForm.next !== pwForm.confirm) { setPwMsg({ text: "كلمتا المرور غير متطابقتين", ok: false }); return; }
+    if (!user?.hrId) { setPwMsg({ text: "لا يمكن تحديد الحساب", ok: false }); return; }
+    const res = await fetch(`/api/hr-accounts/${user.hrId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: pwForm.next }),
+    });
+    if (res.ok) {
+      setPwMsg({ text: "✓ تم تغيير كلمة المرور بنجاح", ok: true });
+      setPwForm({ current: "", next: "", confirm: "" });
+    } else {
+      const d = await res.json();
+      setPwMsg({ text: d.error || "حدث خطأ", ok: false });
+    }
   };
 
   const arStatus = { "Under Review": "مراجعة", "Accepted": "مقبول", "Rejected": "مرفوض" };
@@ -929,6 +950,18 @@ export default function HRDashboard() {
                         <div style={{ fontSize: 10, color: $.muted2, marginTop: 3 }}>{s.l}</div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                <div style={{ padding: 14, background: $.surface2, borderRadius: 10, border: `1px solid ${$.border}` }}>
+                  <div style={{ fontSize: 11, color: $.muted, marginBottom: 10, fontWeight: 700 }}>🔑 {lang === "ar" ? "تغيير كلمة المرور" : "Change Password"}</div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <input style={{ ...$.inp, fontSize: 13 }} type="password" placeholder={lang === "ar" ? "كلمة المرور الجديدة (8+ أحرف)" : "New password (8+ chars)"} value={pwForm.next} onChange={(e) => setPwForm((p) => ({ ...p, next: e.target.value }))} />
+                    <input style={{ ...$.inp, fontSize: 13 }} type="password" placeholder={lang === "ar" ? "تأكيد كلمة المرور" : "Confirm password"} value={pwForm.confirm} onChange={(e) => setPwForm((p) => ({ ...p, confirm: e.target.value }))} />
+                    {pwMsg.text && <div style={{ fontSize: 12, color: pwMsg.ok ? "#34d399" : "#f87171" }}>{pwMsg.text}</div>}
+                    <button style={{ ...$.btn("g"), padding: "8px 0", fontSize: 13 }} onClick={changeOwnPassword}>
+                      {lang === "ar" ? "تغيير كلمة المرور" : "Change Password"}
+                    </button>
                   </div>
                 </div>
 
