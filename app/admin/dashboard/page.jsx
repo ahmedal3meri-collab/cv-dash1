@@ -205,8 +205,8 @@ export default function AdminDashboard() {
               {[
                 { l: "الشركات", v: companies.length, c: G },
                 { l: "المتقدمون", v: applicants.length, c: "#60a5fa" },
-                { l: "الوظائف", v: companies.reduce((a, c) => a + (c.jobs || 0), 0), c: "#34d399" },
-                { l: "هامش الربح", v: "98%+", c: "#a78bfa" },
+                { l: "الوظائف", v: allJobs.length, c: "#34d399" },
+                { l: "حسابات HR", v: hrAccounts.length, c: "#a78bfa" },
               ].map((s, i) => (
                 <div key={i} style={$.st(s.c)}>
                   <div style={{ fontSize: 30, fontWeight: 900, color: s.c, lineHeight: 1 }}>{s.v}</div>
@@ -232,8 +232,8 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td style={$.td}><span style={$.tg(c.plan === "Enterprise" ? G : c.plan === "Professional" ? "#60a5fa" : "#34d399")}>{c.plan}</span></td>
-                      <td style={$.td}><strong>{c.applicants || 0}</strong></td>
-                      <td style={$.td}>{c.hrUsers || 1}</td>
+                      <td style={$.td}><strong>{applicants.filter((a) => a.companyId === c.id || a.companyId === String(c.id)).length}</strong></td>
+                      <td style={$.td}>{hrAccounts.filter((h) => h.companyId === c.id || h.companyId === String(c.id)).length}</td>
                       <td style={$.td}>
                         <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12 }} onClick={() => router.push("/hr/login")}>HR Dashboard</button>
                       </td>
@@ -287,7 +287,10 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 14 }}>
-                    {[{ l: "وظائف", v: c.jobs || 0 }, { l: "متقدمون", v: c.applicants || 0 }].map((s) => (
+                    {[
+                      { l: "وظائف", v: allJobs.filter((j) => j.companyId === c.id).length },
+                      { l: "متقدمون", v: applicants.filter((a) => a.companyId === c.id || a.companyId === String(c.id)).length },
+                    ].map((s) => (
                       <div key={s.l} style={{ background: $.surface, borderRadius: 8, padding: 10, textAlign: "center" }}>
                         <div style={{ fontSize: 20, fontWeight: 900, color: c.primaryColor || G }}>{s.v}</div>
                         <div style={{ fontSize: 11, color: $.muted }}>{s.l}</div>
