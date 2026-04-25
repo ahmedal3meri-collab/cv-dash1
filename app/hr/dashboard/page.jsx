@@ -72,6 +72,7 @@ export default function HRDashboard() {
   const [loading, setLoading] = useState(true);
   const [jobForm, setJobForm] = useState({ title: "", description: "", requirements: "", location: "", jobType: "دوام كامل" });
   const [showJobForm, setShowJobForm] = useState(false);
+  const [editingJob, setEditingJob] = useState(null);
   const [jobLoading, setJobLoading] = useState(false);
   const [copiedJob, setCopiedJob] = useState(null);
 
@@ -242,6 +243,21 @@ export default function HRDashboard() {
   const deleteJob = async (id) => {
     await fetch(`/api/jobs/${id}`, { method: "DELETE" });
     setJobs((p) => p.filter((j) => j.id !== id));
+  };
+
+  const saveEditJob = async () => {
+    if (!editingJob?.title) return;
+    setJobLoading(true);
+    const res = await fetch(`/api/jobs/${editingJob.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: editingJob.title, description: editingJob.description, requirements: editingJob.requirements, location: editingJob.location, jobType: editingJob.jobType }),
+    });
+    if (res.ok) {
+      setJobs((p) => p.map((j) => j.id === editingJob.id ? { ...j, ...editingJob } : j));
+      setEditingJob(null);
+    }
+    setJobLoading(false);
   };
 
   const copyJobLink = (token) => {
@@ -628,6 +644,7 @@ export default function HRDashboard() {
                       >
                         {copiedJob === job.applyToken ? "✓ تم النسخ!" : "🔗 رابط التقديم"}
                       </button>
+                      <button style={{ ...$.btn("s"), padding: "7px 12px", fontSize: 12 }} onClick={() => setEditingJob({ ...job })}>✏️ تعديل</button>
                       <button style={{ ...$.btn("s"), padding: "7px 12px", fontSize: 12 }} onClick={() => toggleJob(job)}>
                         {job.isActive ? "إيقاف" : "تفعيل"}
                       </button>
@@ -701,6 +718,32 @@ export default function HRDashboard() {
               <div style={{ marginTop: 16, padding: 12, background: $.surface2, borderRadius: 10 }}>
                 <div style={{ fontSize: 12, color: $.muted, marginBottom: 8 }}>{t("scheduledInterviews")}</div>
                 <div style={{ fontSize: 26, fontWeight: 900, color: primaryColor }}>{scheduledInterviews.length}</div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {editingJob && (
+          <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div style={{ ...$.card, width: 520, boxShadow: "0 30px 60px #000000cc" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <h3 style={{ margin: 0, fontSize: 17, color: primaryColor }}>✏️ تعديل الوظيفة</h3>
+                <button style={{ background: "none", border: "none", color: $.muted, cursor: "pointer", fontSize: 20 }} onClick={() => setEditingJob(null)}>✕</button>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <input style={$.inp} placeholder="عنوان الوظيفة *" value={editingJob.title} onChange={(e) => setEditingJob((p) => ({ ...p, title: e.target.value }))} />
+                  <input style={$.inp} placeholder="الموقع" value={editingJob.location || ""} onChange={(e) => setEditingJob((p) => ({ ...p, location: e.target.value }))} />
+                  <select style={$.inp} value={editingJob.jobType || "دوام كامل"} onChange={(e) => setEditingJob((p) => ({ ...p, jobType: e.target.value }))}>
+                    <option>دوام كامل</option><option>دوام جزئي</option><option>عن بُعد</option><option>عقد مؤقت</option>
+                  </select>
+                </div>
+                <textarea style={{ ...$.inp, minHeight: 70, resize: "vertical" }} placeholder="وصف الوظيفة" value={editingJob.description || ""} onChange={(e) => setEditingJob((p) => ({ ...p, description: e.target.value }))} />
+                <textarea style={{ ...$.inp, minHeight: 70, resize: "vertical" }} placeholder="متطلبات الوظيفة" value={editingJob.requirements || ""} onChange={(e) => setEditingJob((p) => ({ ...p, requirements: e.target.value }))} />
+                <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+                  <button style={{ ...$.btn("p"), flex: 1 }} onClick={saveEditJob} disabled={jobLoading || !editingJob.title}>{jobLoading ? "⏳..." : "حفظ التعديلات"}</button>
+                  <button style={$.btn("s")} onClick={() => setEditingJob(null)}>إلغاء</button>
+                </div>
               </div>
             </div>
           </div>
