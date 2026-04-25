@@ -760,40 +760,156 @@ export default function HRDashboard() {
           </div>
         )}
 
-        {hTab === "reports" && (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
-            <div style={$.card}>
-              <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>📊 {t("statusDist")}</h3>
-              {[{ l: "مراجعة", c: "#60a5fa" }, { l: "مقبول", c: "#34d399" }, { l: "مرفوض", c: "#f87171" }].map((s) => {
-                const n = applicants.filter((a) => a.status === s.l).length;
-                return (
-                  <div key={s.l} style={{ marginBottom: 14 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13 }}>
-                      <span style={{ color: s.c }}>{s.l}</span>
-                      <span style={{ color: $.muted }}>{n}</span>
-                    </div>
-                    <div style={{ height: 7, background: $.surface3, borderRadius: 4 }}>
-                      <div style={{ height: "100%", background: s.c, borderRadius: 4, width: `${applicants.length ? (n / applicants.length) * 100 : 0}%` }} />
-                    </div>
+        {hTab === "reports" && (() => {
+          const ratedApps = applicants.filter((a) => a.rating > 0);
+          const avgRating = ratedApps.length > 0
+            ? (ratedApps.reduce((s, a) => s + a.rating, 0) / ratedApps.length).toFixed(1)
+            : "—";
+
+          // Top nationalities
+          const natMap = {};
+          applicants.forEach((a) => { if (a.nationality) natMap[a.nationality] = (natMap[a.nationality] || 0) + 1; });
+          const topNat = Object.entries(natMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+
+          // Top skills
+          const skillMap = {};
+          applicants.forEach((a) => a.skills?.forEach((s) => { skillMap[s] = (skillMap[s] || 0) + 1; }));
+          const topSkills = Object.entries(skillMap).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+          // Per-job stats
+          const jobStats = jobs.map((j) => {
+            const ja = applicants.filter((a) => a.jobId === j.id);
+            return { title: j.title, total: ja.length, accepted: ja.filter((a) => a.status === "مقبول").length };
+          }).filter((j) => j.total > 0).sort((a, b) => b.total - a.total);
+
+          const maxNat = topNat[0]?.[1] || 1;
+          const maxSkill = topSkills[0]?.[1] || 1;
+          const maxJob = jobStats[0]?.total || 1;
+
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+                {/* Status breakdown */}
+                <div style={$.card}>
+                  <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>📊 {t("statusDist")}</h3>
+                  {[{ l: "مراجعة", c: "#60a5fa" }, { l: "مقبول", c: "#34d399" }, { l: "مرفوض", c: "#f87171" }].map((s) => {
+                    const n = applicants.filter((a) => a.status === s.l).length;
+                    return (
+                      <div key={s.l} style={{ marginBottom: 14 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5, fontSize: 13 }}>
+                          <span style={{ color: s.c }}>{s.l}</span>
+                          <span style={{ color: $.muted }}>{n} ({applicants.length ? Math.round(n / applicants.length * 100) : 0}%)</span>
+                        </div>
+                        <div style={{ height: 7, background: $.surface3, borderRadius: 4 }}>
+                          <div style={{ height: "100%", background: s.c, borderRadius: 4, width: `${applicants.length ? (n / applicants.length) * 100 : 0}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Rating + summary */}
+                <div style={$.card}>
+                  <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>⭐ {t("avgRating")}</h3>
+                  <div style={{ fontSize: 54, fontWeight: 900, color: primaryColor, textAlign: "center", padding: "14px 0 10px" }}>{avgRating}</div>
+                  <div style={{ textAlign: "center", color: $.muted, fontSize: 13, marginBottom: 16 }}>{t("avgRatingAll")}</div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    {[
+                      { l: lang === "ar" ? "إجمالي المتقدمين" : "Total Applicants", v: applicants.length, c: primaryColor },
+                      { l: lang === "ar" ? "مقابلات مجدولة" : "Scheduled Interviews", v: scheduledInterviews.length, c: "#60a5fa" },
+                      { l: lang === "ar" ? "تم التقييم" : "Rated", v: ratedApps.length, c: "#f59e0b" },
+                      { l: lang === "ar" ? "معدل القبول" : "Acceptance Rate", v: applicants.length ? Math.round(applicants.filter((a) => a.status === "مقبول").length / applicants.length * 100) + "%" : "—", c: "#34d399" },
+                    ].map((s) => (
+                      <div key={s.l} style={{ textAlign: "center", padding: 12, background: $.surface2, borderRadius: 10 }}>
+                        <div style={{ fontSize: 22, fontWeight: 900, color: s.c }}>{s.v}</div>
+                        <div style={{ fontSize: 11, color: $.muted, marginTop: 3 }}>{s.l}</div>
+                      </div>
+                    ))}
                   </div>
-                );
-              })}
-            </div>
-            <div style={$.card}>
-              <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>⭐ {t("avgRating")}</h3>
-              <div style={{ fontSize: 50, fontWeight: 900, color: primaryColor, textAlign: "center", padding: "20px 0" }}>
-                {applicants.filter((a) => a.rating > 0).length > 0
-                  ? (applicants.filter((a) => a.rating > 0).reduce((s, a) => s + a.rating, 0) / applicants.filter((a) => a.rating > 0).length).toFixed(1)
-                  : "—"}
+                </div>
               </div>
-              <div style={{ textAlign: "center", color: $.muted, fontSize: 13 }}>{t("avgRatingAll")}</div>
-              <div style={{ marginTop: 16, padding: 12, background: $.surface2, borderRadius: 10 }}>
-                <div style={{ fontSize: 12, color: $.muted, marginBottom: 8 }}>{t("scheduledInterviews")}</div>
-                <div style={{ fontSize: 26, fontWeight: 900, color: primaryColor }}>{scheduledInterviews.length}</div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 18 }}>
+                {/* Nationality breakdown */}
+                <div style={$.card}>
+                  <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>🌍 {lang === "ar" ? "توزيع الجنسيات" : "Nationality Breakdown"}</h3>
+                  {topNat.length === 0 ? (
+                    <div style={{ textAlign: "center", color: $.muted, padding: 24 }}>{lang === "ar" ? "لا توجد بيانات" : "No data"}</div>
+                  ) : topNat.map(([nat, count]) => (
+                    <div key={nat} style={{ marginBottom: 12 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4, fontSize: 13 }}>
+                        <span>{nat}</span>
+                        <span style={{ color: $.muted }}>{count} ({Math.round(count / applicants.length * 100)}%)</span>
+                      </div>
+                      <div style={{ height: 6, background: $.surface3, borderRadius: 3 }}>
+                        <div style={{ height: "100%", background: primaryColor, borderRadius: 3, width: `${(count / maxNat) * 100}%`, opacity: 0.8 }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Top skills */}
+                <div style={$.card}>
+                  <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>💡 {lang === "ar" ? "أبرز المهارات" : "Top Skills"}</h3>
+                  {topSkills.length === 0 ? (
+                    <div style={{ textAlign: "center", color: $.muted, padding: 24 }}>{lang === "ar" ? "لا توجد بيانات" : "No data"}</div>
+                  ) : (
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                      {topSkills.map(([skill, count]) => (
+                        <div key={skill} style={{ display: "flex", alignItems: "center", gap: 6, background: `${primaryColor}15`, border: `1px solid ${primaryColor}33`, borderRadius: 20, padding: "5px 12px" }}>
+                          <span style={{ fontSize: 13, color: $.text }}>{skill}</span>
+                          <span style={{ fontSize: 11, fontWeight: 900, color: primaryColor, background: `${primaryColor}22`, borderRadius: 10, padding: "1px 6px" }}>{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ marginTop: 14, height: 1, background: $.border }} />
+                  <div style={{ marginTop: 12 }}>
+                    {topSkills.slice(0, 5).map(([skill, count]) => (
+                      <div key={skill} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                        <span style={{ fontSize: 12, width: 120, color: $.text }}>{skill}</span>
+                        <div style={{ flex: 1, height: 5, background: $.surface3, borderRadius: 3 }}>
+                          <div style={{ height: "100%", background: `linear-gradient(90deg,${primaryColor},${primaryColor}88)`, borderRadius: 3, width: `${(count / maxSkill) * 100}%` }} />
+                        </div>
+                        <span style={{ fontSize: 11, color: $.muted, width: 20, textAlign: "left" }}>{count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Per-job stats */}
+              {jobStats.length > 0 && (
+                <div style={$.card}>
+                  <h3 style={{ margin: "0 0 18px", fontSize: 16 }}>💼 {lang === "ar" ? "المتقدمون بحسب الوظيفة" : "Applicants by Job"}</h3>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {jobStats.map((j) => (
+                      <div key={j.title} style={{ background: $.surface2, borderRadius: 10, padding: "12px 16px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                          <span style={{ fontWeight: 700, fontSize: 13 }}>{j.title}</span>
+                          <div style={{ display: "flex", gap: 10, fontSize: 12 }}>
+                            <span style={{ color: "#60a5fa" }}>{j.total} {lang === "ar" ? "متقدم" : "applicants"}</span>
+                            <span style={{ color: "#34d399" }}>{j.accepted} {lang === "ar" ? "مقبول" : "accepted"}</span>
+                          </div>
+                        </div>
+                        <div style={{ height: 5, background: $.surface3, borderRadius: 3 }}>
+                          <div style={{ height: "100%", background: primaryColor, borderRadius: 3, width: `${(j.total / maxJob) * 100}%`, opacity: 0.7 }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button style={{ ...$.btn("g"), padding: "10px 20px", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}
+                  onClick={() => exportToExcel("all")}>
+                  <Icon n="dl" s={15} />
+                  {lang === "ar" ? "تصدير كامل التقرير Excel" : "Export Full Report to Excel"}
+                </button>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {editingJob && (
           <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>
