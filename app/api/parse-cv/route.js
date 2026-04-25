@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
 const CV_PROMPT = `استخرج المعلومات من هذه السيرة الذاتية وأعدها كـ JSON فقط بدون أي نص آخر:

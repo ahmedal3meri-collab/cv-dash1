@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "../../../lib/auth";
@@ -94,7 +95,10 @@ export async function POST(request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     // Update company jobs count
-    await supabase.rpc("increment_company_jobs", { cid: companyId }).catch(() => {});
+    await supabase.rpc("increment_company_jobs", { cid: companyId })
+      .catch(() => supabase.from("companies").select("jobs").eq("id", companyId).single()
+        .then(({ data: co }) => co && supabase.from("companies").update({ jobs: (co.jobs || 0) + 1 }).eq("id", companyId))
+        .catch(() => {}));
 
     return NextResponse.json(mapJob(data), { status: 201 });
   } catch (err) {
