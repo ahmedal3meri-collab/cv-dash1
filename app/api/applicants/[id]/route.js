@@ -12,16 +12,18 @@ export async function PUT(request, { params }) {
     }
 
     const supabase = getSupabaseAdmin();
+    const updates = {};
+    if (body.status !== undefined)        updates.status = body.status;
+    if (body.rating !== undefined)        updates.rating = body.rating;
+    if (body.notes !== undefined)         updates.notes = body.notes;
+    if (body.interviewDate !== undefined) updates.interview_date = body.interviewDate;
+    if (body.interviewTime !== undefined) updates.interview_time = body.interviewTime;
+    if (body.interviewNotes !== undefined) updates.interview_notes = body.interviewNotes;
+    if (Object.keys(updates).length === 0) return NextResponse.json({ success: true, id });
+
     const { data, error } = await supabase
       .from("applicants")
-      .update({
-        status: body.status,
-        rating: body.rating,
-        interview_date: body.interviewDate,
-        interview_time: body.interviewTime,
-        interview_notes: body.interviewNotes,
-        notes: body.notes,
-      })
+      .update(updates)
       .eq("id", id)
       .select()
       .single();
