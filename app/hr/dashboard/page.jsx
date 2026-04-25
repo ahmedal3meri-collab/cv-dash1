@@ -244,10 +244,11 @@ export default function HRDashboard() {
     setSelectedIds([]);
   };
 
+  const reviewCount = applicants.filter((a) => a.status === "مراجعة").length;
   const sidebarItems = [
-    { k: "applicants", ic: "users", l: t("applicants") },
-    { k: "jobs", ic: "bag", l: t("jobs") },
-    { k: "interviews", ic: "cal", l: t("interviews") },
+    { k: "applicants", ic: "users", l: t("applicants"), badge: reviewCount || null },
+    { k: "jobs", ic: "bag", l: t("jobs"), badge: jobs.length || null },
+    { k: "interviews", ic: "cal", l: t("interviews"), badge: scheduledInterviews.length || null },
     { k: "reports", ic: "chart", l: t("reports") },
   ];
 
@@ -521,7 +522,12 @@ export default function HRDashboard() {
                           <div style={{ width: 35, height: 35, borderRadius: 9, background: `${primaryColor}22`, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 800, color: primaryColor, fontSize: 15 }}>{(a.name || "؟")[0]}</div>
                           <div>
                             <div style={{ fontWeight: 700, fontSize: 13 }}>{a.name}</div>
-                            <div style={{ fontSize: 11, color: $.muted }}>{a.nationality} · {a.date}</div>
+                            <div style={{ fontSize: 11, color: $.muted }}>
+                              {a.nationality} · {a.date}
+                              {a.jobId && jobs.find((j) => j.id === a.jobId) && (
+                                <span style={{ color: primaryColor }}> · {jobs.find((j) => j.id === a.jobId)?.title}</span>
+                              )}
+                            </div>
                           </div>
                           {a.interviewDate && <span style={{ ...$.tg(primaryColor), fontSize: 10 }}>📅</span>}
                         </div>

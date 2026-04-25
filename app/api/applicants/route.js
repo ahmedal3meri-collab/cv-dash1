@@ -27,6 +27,7 @@ function mapApplicant(a) {
     interviewTime: a.interview_time,
     interviewNotes: a.interview_notes,
     companyId: a.company_id,
+    jobId: a.job_id,
     date: a.created_at?.split("T")[0],
   };
 }
@@ -81,6 +82,7 @@ export async function POST(request) {
         status: body.status || "مراجعة",
         rating: body.rating || 0,
         company_id: body.companyId,
+        job_id: body.jobId || null,
       })
       .select()
       .single();

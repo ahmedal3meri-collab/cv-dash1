@@ -36,7 +36,12 @@ export default function Sidebar({ items, active, go, foot, primaryColor = "#C9A8
         {items.map((it) => (
           <div key={it.k} style={ni(active === it.k)} onClick={() => go(it.k)}>
             <Icon n={it.ic} s={17} />
-            <span>{it.l}</span>
+            <span style={{ flex: 1 }}>{it.l}</span>
+            {it.badge != null && (
+              <span style={{ fontSize: 10, fontWeight: 900, background: active === it.k ? G : "#333", color: active === it.k ? "#0a0a0f" : "#aaa", borderRadius: 20, padding: "1px 7px", minWidth: 18, textAlign: "center" }}>
+                {it.badge}
+              </span>
+            )}
           </div>
         ))}
       </nav>
