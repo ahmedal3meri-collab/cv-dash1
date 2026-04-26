@@ -19,6 +19,11 @@ export async function PUT(request, { params }) {
     if (body.interviewDate !== undefined) updates.interview_date = body.interviewDate;
     if (body.interviewTime !== undefined) updates.interview_time = body.interviewTime;
     if (body.interviewNotes !== undefined) updates.interview_notes = body.interviewNotes;
+    if (body.aiScore !== undefined)        updates.ai_score = body.aiScore;
+    if (body.aiMatchReasons !== undefined) updates.ai_match_reasons = JSON.stringify(body.aiMatchReasons);
+    if (body.aiGaps !== undefined)         updates.ai_gaps = JSON.stringify(body.aiGaps);
+    if (body.aiRecommendation !== undefined) updates.ai_recommendation = body.aiRecommendation;
+    if (body.aiScoredAt !== undefined)     updates.ai_scored_at = body.aiScoredAt;
     if (Object.keys(updates).length === 0) return NextResponse.json({ success: true, id });
 
     const { data, error } = await supabase

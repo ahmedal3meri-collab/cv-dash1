@@ -6,6 +6,7 @@ import Icon from "../../../components/shared/Icon";
 import Sidebar from "../../../components/shared/Sidebar";
 import Stars from "../../../components/shared/Stars";
 import Badge from "../../../components/shared/Badge";
+import { AiScore } from "../../../components/shared/AiScore";
 import { createTheme } from "../../../lib/theme";
 
 const T = {
@@ -98,6 +99,18 @@ export default function HRDashboard() {
   const [sortDir, setSortDir] = useState("desc");
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
+
+  const [aiTab, setAiTab] = useState("rank");
+  const [rankLoading, setRankLoading] = useState(false);
+  const [rankedList, setRankedList] = useState([]);
+  const [rankJobId, setRankJobId] = useState("all");
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analytics, setAnalytics] = useState(null);
+  const [interviewQs, setInterviewQs] = useState(null);
+  const [interviewQsLoading, setInterviewQsLoading] = useState(false);
+  const [offerLetter, setOfferLetter] = useState(null);
+  const [offerLetterLoading, setOfferLetterLoading] = useState(false);
+  const [aiModal, setAiModal] = useState(null);
 
   useEffect(() => {
     fetch("/api/me")
@@ -247,6 +260,7 @@ export default function HRDashboard() {
     else if (sortBy === "name") { va = a.name || ""; vb = b.name || ""; }
     else if (sortBy === "date") { va = a.date || ""; vb = b.date || ""; }
     else if (sortBy === "experience") { va = parseInt(a.experience) || 0; vb = parseInt(b.experience) || 0; }
+    else if (sortBy === "aiScore") { va = a.aiScore ?? -1; vb = b.aiScore ?? -1; }
     else { va = ""; vb = ""; }
     if (typeof va === "string") return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
     return sortDir === "asc" ? va - vb : vb - va;
@@ -336,6 +350,7 @@ export default function HRDashboard() {
     { k: "jobs", ic: "bag", l: t("jobs"), badge: jobs.length || null },
     { k: "interviews", ic: "cal", l: t("interviews"), badge: scheduledInterviews.length || null },
     { k: "reports", ic: "chart", l: t("reports") },
+    { k: "ai", ic: "ai", l: "ذكاء اصطناعي" },
   ];
 
   if (loading) {
@@ -391,6 +406,67 @@ export default function HRDashboard() {
         </div>
       )}
 
+      {/* Interview Questions Modal */}
+      {aiModal === "interview" && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000bb", zIndex: 300, display: "flex", alignItems: "flex-start", justifyContent: "center", overflow: "auto", padding: "32px 16px" }}>
+          <div style={{ background: $.surface, border: `1px solid ${$.border}`, borderRadius: 18, width: "100%", maxWidth: 700, boxShadow: "0 40px 80px #000000cc" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: `1px solid ${$.border}` }}>
+              <h3 style={{ margin: 0, fontSize: 17, color: "#6366f1" }}>🎤 أسئلة المقابلة — {selApplicant?.name}</h3>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button style={{ ...$.btn("g"), padding: "7px 14px", fontSize: 12 }} onClick={() => window.print()}>🖨️ طباعة</button>
+                <button style={{ background: "none", border: "none", color: $.muted, cursor: "pointer", fontSize: 22 }} onClick={() => setAiModal(null)}>✕</button>
+              </div>
+            </div>
+            <div style={{ padding: 24 }}>
+              {interviewQsLoading ? (
+                <div style={{ textAlign: "center", padding: 40, color: $.muted }}>⏳ جاري توليد الأسئلة...</div>
+              ) : interviewQs ? (
+                [["technical", "🔧 أسئلة تقنية", "#60a5fa"], ["behavioral", "💬 أسئلة سلوكية", "#f59e0b"], ["cultural", "🤝 أسئلة ثقافية", "#22c55e"]].map(([key, label, color]) => (
+                  <div key={key} style={{ marginBottom: 24 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color, marginBottom: 12 }}>{label}</div>
+                    {(interviewQs[key] || []).map((q, i) => (
+                      <div key={i} style={{ background: $.surface2, borderRadius: 10, padding: 14, marginBottom: 8, borderRight: `3px solid ${color}` }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 5 }}>{i + 1}. {q.q}</div>
+                        <div style={{ fontSize: 11, color: $.muted }}>💡 {q.hint}</div>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: "center", padding: 40, color: "#f87171" }}>تعذّر توليد الأسئلة — تحقق من ANTHROPIC_API_KEY</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Offer Letter Modal */}
+      {aiModal === "offer" && (
+        <div style={{ position: "fixed", inset: 0, background: "#000000bb", zIndex: 300, display: "flex", alignItems: "flex-start", justifyContent: "center", overflow: "auto", padding: "32px 16px" }}>
+          <div style={{ background: $.surface, border: `1px solid ${$.border}`, borderRadius: 18, width: "100%", maxWidth: 680, boxShadow: "0 40px 80px #000000cc" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: `1px solid ${$.border}` }}>
+              <h3 style={{ margin: 0, fontSize: 17, color: primaryColor }}>📄 خطاب العرض — {selApplicant?.name}</h3>
+              <div style={{ display: "flex", gap: 8 }}>
+                {offerLetter && (
+                  <button style={{ ...$.btn("p"), padding: "7px 14px", fontSize: 12 }} onClick={() => navigator.clipboard.writeText(offerLetter)}>📋 نسخ</button>
+                )}
+                <button style={{ ...$.btn("g"), padding: "7px 14px", fontSize: 12 }} onClick={() => window.print()}>🖨️ طباعة</button>
+                <button style={{ background: "none", border: "none", color: $.muted, cursor: "pointer", fontSize: 22 }} onClick={() => setAiModal(null)}>✕</button>
+              </div>
+            </div>
+            <div style={{ padding: 24 }}>
+              {offerLetterLoading ? (
+                <div style={{ textAlign: "center", padding: 40, color: $.muted }}>⏳ جاري توليد خطاب العرض...</div>
+              ) : offerLetter ? (
+                <pre style={{ whiteSpace: "pre-wrap", fontSize: 14, lineHeight: 2, color: $.text, fontFamily: "inherit", direction: "rtl", margin: 0 }}>{offerLetter}</pre>
+              ) : (
+                <div style={{ textAlign: "center", padding: 40, color: "#f87171" }}>تعذّر توليد الخطاب — تحقق من ANTHROPIC_API_KEY</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={{ display: "grid", gridTemplateColumns: "1fr 330px", gap: 22, padding: 26 }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div style={{ ...$.card, border: `1px solid ${primaryColor}33`, background: dark ? `linear-gradient(135deg,${primaryColor}08,${$.surface})` : `linear-gradient(135deg,${primaryColor}08,#fff)` }}>
@@ -400,6 +476,38 @@ export default function HRDashboard() {
             </div>
             <p style={{ margin: 0, color: $.muted, lineHeight: 1.8, fontSize: 14 }}>{selApplicant.aiSummary || "—"}</p>
           </div>
+
+          {selApplicant.aiScore !== null && selApplicant.aiScore !== undefined && (
+            <div style={{ ...$.card, border: `1px solid #6366f133` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                <span style={{ fontSize: 18 }}>🤖</span>
+                <h3 style={{ margin: 0, color: "#6366f1", fontSize: 15 }}>تقييم الذكاء الاصطناعي</h3>
+                <AiScore score={selApplicant.aiScore} />
+              </div>
+              {(selApplicant.aiMatchReasons || []).length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700, marginBottom: 5 }}>✓ نقاط القوة</div>
+                  {(selApplicant.aiMatchReasons || []).map((r, i) => (
+                    <div key={i} style={{ fontSize: 12, color: $.muted, padding: "3px 0", paddingRight: 12, borderRight: "2px solid #22c55e44" }}>{r}</div>
+                  ))}
+                </div>
+              )}
+              {(selApplicant.aiGaps || []).length > 0 && (
+                <div style={{ marginBottom: 10 }}>
+                  <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginBottom: 5 }}>⚠ الفجوات</div>
+                  {(selApplicant.aiGaps || []).map((g, i) => (
+                    <div key={i} style={{ fontSize: 12, color: $.muted, padding: "3px 0", paddingRight: 12, borderRight: "2px solid #f59e0b44" }}>{g}</div>
+                  ))}
+                </div>
+              )}
+              {selApplicant.aiRecommendation && (
+                <div style={{ fontSize: 12, color: "#6366f1", background: "#6366f111", borderRadius: 8, padding: "8px 12px", marginTop: 6 }}>
+                  💡 {selApplicant.aiRecommendation}
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={$.card}>
             <h3 style={{ margin: "0 0 16px", fontSize: 15 }}>{t("fullInfo")}</h3>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -475,6 +583,32 @@ export default function HRDashboard() {
           ) : (
             <button style={{ ...$.btn("g"), padding: 11, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13 }} onClick={() => { setInterviewForm({ date: "", time: "", notes: "" }); setShowInterview(true); }}>
               <Icon n="cal" s={15} />{t("scheduleInterview")}
+            </button>
+          )}
+          <button
+            style={{ ...$.btn("g"), padding: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13 }}
+            onClick={async () => {
+              setInterviewQsLoading(true); setAiModal("interview"); setInterviewQs(null);
+              const res = await fetch("/api/ai/interview-questions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ applicantId: selApplicant.id }) });
+              const d = await res.json();
+              setInterviewQs(res.ok ? d : null);
+              setInterviewQsLoading(false);
+            }}
+          >
+            🎤 أسئلة المقابلة
+          </button>
+          {selApplicant.status === "مقبول" && (
+            <button
+              style={{ ...$.btn("g"), padding: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontSize: 13 }}
+              onClick={async () => {
+                setOfferLetterLoading(true); setAiModal("offer"); setOfferLetter(null);
+                const res = await fetch("/api/ai/offer-letter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ applicantId: selApplicant.id }) });
+                const d = await res.json();
+                setOfferLetter(res.ok ? d.letter : null);
+                setOfferLetterLoading(false);
+              }}
+            >
+              📄 خطاب العرض
             </button>
           )}
           {selApplicant.phone && (
@@ -615,6 +749,7 @@ export default function HRDashboard() {
                     { l: t("languages"), k: null },
                     { l: t("rating"), k: "rating" },
                     { l: t("status"), k: null },
+                    { l: "AI", k: "aiScore" },
                     { l: t("date"), k: "date" },
                     { l: "", k: null },
                   ].map(({ l, k }) => (
@@ -626,7 +761,7 @@ export default function HRDashboard() {
                 </thead>
                 <tbody>
                   {sortedFiltered.length === 0 ? (
-                    <tr><td colSpan={9} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>{applicants.length === 0 ? "لا يوجد متقدمون بعد" : t("noResults")}</td></tr>
+                    <tr><td colSpan={10} style={{ ...$.td, textAlign: "center", color: $.muted, padding: 40 }}>{applicants.length === 0 ? "لا يوجد متقدمون بعد" : t("noResults")}</td></tr>
                   ) : pagedApplicants.map((a) => (
                     <tr key={a.id} onMouseEnter={(e) => e.currentTarget.style.background = $.surface3} onMouseLeave={(e) => e.currentTarget.style.background = selectedIds.includes(a.id) ? `${primaryColor}11` : "transparent"} style={{ cursor: "pointer", background: selectedIds.includes(a.id) ? `${primaryColor}11` : "transparent" }}>
                       <td style={{ ...$.td, width: 36 }}>
@@ -652,6 +787,7 @@ export default function HRDashboard() {
                       <td style={$.td}><div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>{(a.languages || []).slice(0, 2).map((l) => <span key={l} style={$.tg("#60a5fa")}>{l.split(" ")[0]}</span>)}</div></td>
                       <td style={$.td}><Stars v={a.rating} onChange={(r) => updateApplicant(a.id, { rating: r })} /></td>
                       <td style={$.td}><Badge s={a.status} /></td>
+                      <td style={$.td}><AiScore score={a.aiScore} /></td>
                       <td style={{ ...$.td, color: $.muted, fontSize: 12 }}>{a.date || "—"}</td>
                       <td style={$.td}>
                         <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12, display: "flex", alignItems: "center", gap: 5 }} onClick={() => setSelApplicant(a)}>
@@ -970,6 +1106,143 @@ export default function HRDashboard() {
             </div>
           );
         })()}
+
+        {hTab === "ai" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+            <div style={{ display: "flex", gap: 0, background: $.surface2, borderRadius: 12, padding: 4, border: `1px solid ${$.border}`, width: "fit-content" }}>
+              {[["rank", "🤖 ترتيب المتقدمين"], ["analytics", "📊 تحليل المجموعة"]].map(([k, l]) => (
+                <button key={k} onClick={() => setAiTab(k)}
+                  style={{ padding: "8px 18px", borderRadius: 9, border: "none", cursor: "pointer", fontFamily: "inherit", fontSize: 13, fontWeight: 700, background: aiTab === k ? primaryColor : "transparent", color: aiTab === k ? "#000" : $.muted, transition: "all .2s" }}>
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            {aiTab === "rank" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ ...$.card, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+                  <div style={{ fontSize: 13, color: $.muted }}>اختر الوظيفة:</div>
+                  <select style={{ ...$.inp, width: 220 }} value={rankJobId} onChange={(e) => setRankJobId(e.target.value)}>
+                    <option value="all">جميع المتقدمين</option>
+                    {jobs.map((j) => <option key={j.id} value={j.id}>{j.title}</option>)}
+                  </select>
+                  <button
+                    style={{ ...$.btn("p"), padding: "9px 20px", fontSize: 13, display: "flex", alignItems: "center", gap: 8 }}
+                    disabled={rankLoading}
+                    onClick={async () => {
+                      setRankLoading(true); setRankedList([]);
+                      const res = await fetch("/api/ai/rank", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ jobId: rankJobId === "all" ? null : rankJobId, companyId }),
+                      });
+                      const d = await res.json();
+                      if (res.ok) {
+                        setRankedList(d.ranked || []);
+                        setApplicants((prev) => prev.map((a) => {
+                          const r = (d.ranked || []).find((x) => x.id === a.id);
+                          return r ? { ...a, aiScore: r.aiScore, aiMatchReasons: r.aiMatchReasons, aiGaps: r.aiGaps, aiRecommendation: r.aiRecommendation } : a;
+                        }));
+                      }
+                      setRankLoading(false);
+                    }}
+                  >
+                    {rankLoading ? "⏳ جاري التقييم..." : "🚀 رتّب الآن"}
+                  </button>
+                  {!rankLoading && rankedList.length === 0 && (
+                    <span style={{ fontSize: 12, color: $.muted }}>اضغط &quot;رتّب الآن&quot; لتقييم المتقدمين بالذكاء الاصطناعي</span>
+                  )}
+                </div>
+                {rankedList.length > 0 && (
+                  <div style={$.card}>
+                    <div style={{ fontSize: 13, color: $.muted, marginBottom: 14 }}>
+                      تم تقييم {rankedList.length} متقدم — مرتبون من الأعلى إلى الأدنى
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      {rankedList.map((r, idx) => (
+                        <div key={r.id} style={{ background: $.surface2, borderRadius: 12, padding: "14px 16px", display: "flex", alignItems: "center", gap: 14, border: idx === 0 ? `1px solid ${primaryColor}44` : `1px solid ${$.border}` }}>
+                          <div style={{ width: 32, height: 32, borderRadius: 8, background: idx === 0 ? primaryColor : $.surface3, color: idx === 0 ? "#000" : $.muted, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 900, fontSize: 15 }}>
+                            {idx + 1}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 700, fontSize: 14 }}>{r.name}</div>
+                            <div style={{ fontSize: 12, color: $.muted }}>{r.currentTitle} · {r.experience}</div>
+                            {r.aiRecommendation && <div style={{ fontSize: 11, color: "#6366f1", marginTop: 4 }}>💡 {r.aiRecommendation}</div>}
+                          </div>
+                          <AiScore score={r.aiScore} />
+                          <button style={{ ...$.btn("g"), padding: "6px 12px", fontSize: 12 }}
+                            onClick={() => { const a = applicants.find((x) => x.id === r.id); if (a) setSelApplicant(a); }}>
+                            عرض
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {aiTab === "analytics" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div style={{ ...$.card, display: "flex", gap: 12, alignItems: "center" }}>
+                  <div style={{ fontSize: 13, color: $.muted }}>تحليل شامل لمجموعة المتقدمين ({applicants.length} متقدم)</div>
+                  <button
+                    style={{ ...$.btn("p"), padding: "9px 20px", fontSize: 13 }}
+                    disabled={analyticsLoading}
+                    onClick={async () => {
+                      setAnalyticsLoading(true); setAnalytics(null);
+                      const res = await fetch("/api/ai/analytics", {
+                        method: "POST", headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ companyId }),
+                      });
+                      const d = await res.json();
+                      if (res.ok) setAnalytics(d);
+                      setAnalyticsLoading(false);
+                    }}
+                  >
+                    {analyticsLoading ? "⏳ جاري التحليل..." : "🔍 حلّل المجموعة"}
+                  </button>
+                </div>
+
+                {analytics && (
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                    <div style={{ ...$.card, border: `1px solid ${primaryColor}33` }}>
+                      <div style={{ fontSize: 11, color: $.muted, fontWeight: 700, marginBottom: 8 }}>جودة المجموعة</div>
+                      <div style={{ fontSize: 40, fontWeight: 900, color: analytics.poolQualityScore >= 70 ? "#22c55e" : analytics.poolQualityScore >= 50 ? "#f59e0b" : "#ef4444" }}>{analytics.poolQualityScore}/100</div>
+                      <div style={{ fontSize: 13, color: $.muted, marginTop: 8, lineHeight: 1.7 }}>{analytics.poolQualitySummary}</div>
+                    </div>
+                    <div style={$.card}>
+                      <div style={{ fontSize: 11, color: "#f59e0b", fontWeight: 700, marginBottom: 10 }}>⚠ فجوات المهارات</div>
+                      {(analytics.skillsGapAnalysis || []).map((g, i) => (
+                        <div key={i} style={{ fontSize: 12, color: $.muted, padding: "4px 0", borderBottom: `1px solid ${$.border}` }}>{g}</div>
+                      ))}
+                    </div>
+                    <div style={$.card}>
+                      <div style={{ fontSize: 11, color: "#22c55e", fontWeight: 700, marginBottom: 10 }}>⭐ أفضل المتقدمين</div>
+                      {(analytics.topPerformers || []).map((p, i) => (
+                        <div key={i} style={{ fontSize: 12, color: $.muted, padding: "4px 0" }}>• {p}</div>
+                      ))}
+                    </div>
+                    <div style={$.card}>
+                      <div style={{ fontSize: 11, color: "#60a5fa", fontWeight: 700, marginBottom: 10 }}>📋 توصيات التوظيف</div>
+                      {(analytics.hiringRecommendations || []).map((r, i) => (
+                        <div key={i} style={{ fontSize: 12, color: $.muted, padding: "4px 0" }}>• {r}</div>
+                      ))}
+                    </div>
+                    <div style={{ ...$.card, gridColumn: "1 / -1" }}>
+                      <div style={{ fontSize: 11, color: "#ef4444", fontWeight: 700, marginBottom: 10 }}>🚨 إجراءات عاجلة</div>
+                      {(analytics.urgentActions || []).map((a, i) => (
+                        <div key={i} style={{ fontSize: 12, color: $.muted, padding: "4px 0", background: "#ef444411", borderRadius: 6, padding: "6px 10px", marginBottom: 5 }}>• {a}</div>
+                      ))}
+                      {analytics.diversityInsights && (
+                        <div style={{ fontSize: 12, color: "#a78bfa", marginTop: 10 }}>🌍 {analytics.diversityInsights}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {editingJob && (
           <div style={{ position: "fixed", inset: 0, background: "#00000099", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center" }}>

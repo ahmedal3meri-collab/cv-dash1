@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "../../../lib/supabase-server";
 import { MOCK_APPLICANTS } from "../../../lib/data";
+import { scoreApplicantWithClaude, } from "../../../lib/ai-scoring";
 
 function mapApplicant(a) {
   return {
@@ -21,6 +22,11 @@ function mapApplicant(a) {
     languages: a.languages || [],
     certifications: a.certifications || [],
     aiSummary: a.ai_summary,
+    aiScore: a.ai_score ?? null,
+    aiMatchReasons: a.ai_match_reasons ? JSON.parse(a.ai_match_reasons) : [],
+    aiGaps: a.ai_gaps ? JSON.parse(a.ai_gaps) : [],
+    aiRecommendation: a.ai_recommendation ?? null,
+    aiScoredAt: a.ai_scored_at ?? null,
     status: a.status,
     rating: a.rating,
     notes: a.notes,
@@ -89,8 +95,33 @@ export async function POST(request) {
       .single();
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Fire-and-forget: score in background without blocking the response
+    scoreApplicantInBackground(data, body.jobId).catch(() => {});
+
     return NextResponse.json(mapApplicant(data), { status: 201 });
   } catch {
     return NextResponse.json({ error: "خطأ داخلي" }, { status: 500 });
   }
+}
+
+async function scoreApplicantInBackground(applicant, jobId) {
+  if (!isSupabaseConfigured()) return;
+  try {
+    const supabase = getSupabaseAdmin();
+    let job = null;
+    if (jobId) {
+      const { data } = await supabase.from("jobs").select("*").eq("id", jobId).single();
+      job = data;
+    }
+    const result = await scoreApplicantWithClaude(mapApplicant(applicant), job);
+    if (result.score === null) return;
+    await supabase.from("applicants").update({
+      ai_score: result.score,
+      ai_match_reasons: JSON.stringify(result.matchReasons || []),
+      ai_gaps: JSON.stringify(result.gaps || []),
+      ai_recommendation: result.recommendation || null,
+      ai_scored_at: new Date().toISOString(),
+    }).eq("id", applicant.id);
+  } catch {}
 }

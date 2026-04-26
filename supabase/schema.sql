@@ -295,6 +295,16 @@ INSERT INTO hr_accounts (company_id, name, email, password_hash, role) VALUES
   ('33333333-3333-3333-3333-333333333333', 'فاطمة الكعبي',  'hr@dek.ae',    '$2b$10$pD2GOyUlPjjBIald6FuGJu0S8Lq.p6OFi8QVIP1l6p4QTGepThrJa', 'hr');
 
 -- ============================================================
+-- Migration: AI Scoring Columns
+-- ============================================================
+ALTER TABLE applicants
+  ADD COLUMN IF NOT EXISTS ai_score           INT          DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS ai_match_reasons   TEXT         DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS ai_gaps            TEXT         DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS ai_recommendation  TEXT         DEFAULT NULL,
+  ADD COLUMN IF NOT EXISTS ai_scored_at       TIMESTAMPTZ  DEFAULT NULL;
+
+-- ============================================================
 -- ملاحظة PDPL:
 -- - جدول audit_log يسجل جميع العمليات تلقائياً
 -- - حقل deletion_requested يدعم حق الحذف وفق PDPL
